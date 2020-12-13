@@ -9,7 +9,7 @@ import json
 import aiosqlite
 
 
-cfg = loadFile("config/data.json")
+cfg = loadFile("../config/data.json")
 panel = Blueprint("panel", __name__,static_folder="/static/", template_folder="/templates/")
 web_ipc = Client(secret_key=cfg["IPC_key"])
 
@@ -18,7 +18,7 @@ d_base = None
 
 async def before():
     global dbase, d_base
-    dbase = await aiosqlite.connect('config/test.db')
+    dbase = await aiosqlite.connect('../config/test.db')
     dbase.row_factory = aiosqlite.Row
     d_base = await dbase.cursor()
 
