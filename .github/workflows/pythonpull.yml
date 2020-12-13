@@ -36,5 +36,5 @@ jobs:
       run: |
         pytest
       env:
-        CONFIG_POS: ~/home/soph/app/files/config/
+        CONFIG_POS: /home/ubuntu/home/soph/app/files/config/
 
