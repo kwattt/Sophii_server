@@ -34,3 +34,7 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+
+    - name: Copy files to production
+      run: |
+        sh ~/home/soph/copProd.sh
