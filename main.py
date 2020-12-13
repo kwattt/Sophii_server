@@ -6,10 +6,7 @@ from quart import Quart, blueprints, redirect
 import asyncio
 import os
 
-
-print(os.environ)
 config_pos = os.getenv('CONFIG_POS')
-print(config_pos)
 
 cfg = loadFile(config_pos + "data.json")
 web_ipc = Client(secret_key=cfg["IPC_key"])
