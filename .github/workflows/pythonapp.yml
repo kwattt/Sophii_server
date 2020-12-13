@@ -37,4 +37,4 @@ jobs:
 
     - name: Copy files to production
       run: |
-        sh ~/home/soph/copProd.sh
+        sh ~/home/soph/copyProd.sh
