@@ -32,6 +32,8 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+      env:
+        CONFIG_POS: /home/ubuntu/home/soph/app/files/config/
 
     - name: Copy files to production
       run: |

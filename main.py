@@ -6,7 +6,9 @@ from quart import Quart, blueprints, redirect
 import asyncio
 import os
 
-cfg = loadFile("../config/data.json")
+config_pos = os.getenv('CONFIG_POS')
+
+cfg = loadFile(config_pos + "data.json")
 web_ipc = Client(secret_key=cfg["IPC_key"])
 
 app = Quart(__name__, static_folder='build',static_url_path='')
@@ -19,12 +21,14 @@ development = os.environ.get('DEVAREA')
 if development == 'True':
   os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
   app.config["DISCORD_REDIRECT_URI"] = cfg["d_oauth_local"]
+  print("DEV -- DETECTED")
 else:
   app.config["DISCORD_REDIRECT_URI"] = cfg["d_oauth"]
 
 @app.route("/")
 def index():
-  return "test_op test2"
+  return "test_op final test"
 
-if __name__ == "__main__":
-  app.run()
+if development == 'True':
+  if __name__ == "__main__":
+    app.run(debug=True)

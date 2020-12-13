@@ -1,5 +1,6 @@
 import pytest
 from main import app
+import asyncio
 
 @pytest.fixture(name='test_app')
 def _test_app():
