@@ -11,7 +11,7 @@ config_pos = os.getenv('CONFIG_POS')
 cfg = loadFile(config_pos + "data.json")
 web_ipc = Client(secret_key=cfg["IPC_key"])
 
-app = Quart(__name__, static_folder='build',static_url_path='')
+app = Quart(__name__, static_folder='build/build',static_url_path='')
 app.secret_key = cfg["flask_secret"]
 app.config["DISCORD_CLIENT_ID"] = cfg["d_client_id"]
 app.config["DISCORD_CLIENT_SECRET"] = cfg["d_client_secret"]
