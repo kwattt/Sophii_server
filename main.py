@@ -2,7 +2,7 @@ from commons import loadFile
 from quart_discord import DiscordOAuth2Session
 from discord.ext.ipc import Client
 from discord.ext import commands
-from quart import Quart, blueprints, redirect
+from quart import Quart, blueprints, redirect, send_from_directory
 import asyncio
 import os
 
@@ -25,9 +25,9 @@ if development == 'True':
 else:
   app.config["DISCORD_REDIRECT_URI"] = cfg["d_oauth"]
 
-@app.route("/")
-def index():
-  return "test_op final test"
+@app.route('/')
+async def serve():
+  return await send_from_directory(app.static_folder, 'index.html')
 
 if development == 'True':
   if __name__ == "__main__":
