@@ -1,5 +1,6 @@
 import os 
 from commons import loadFile
+from quart_cors import cors
 
 def configure_app(app):
 
@@ -24,6 +25,13 @@ def configure_app(app):
   if development == 'True':
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     app.config["DISCORD_REDIRECT_URI"] = cfg["d_oauth_local"]
+
+    # CORS // LOCAL ONLY.
+
+    app = cors(app, allow_origin="*")
+
     print("DEV -- DETECTED")
   else:
     app.config["DISCORD_REDIRECT_URI"] = cfg["d_oauth"]
+
+
