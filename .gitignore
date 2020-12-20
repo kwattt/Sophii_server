@@ -8,3 +8,4 @@ info.log
 .pytest_cache/
 build/
 build/build/index.html
+test_index.py

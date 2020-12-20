@@ -1,9 +1,13 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
-
 from quart_discord import requires_authorization, Unauthorized
 
 def api_bp(discord):
+  '''
+    Esta función contiene los endpoints de login, autorización y revoke.
 
+    :param discord: 
+      Instancia de quart_discord.
+  '''
   api_control = Blueprint("api_control", __name__)
 
   @api_control.route('/api/login')
@@ -15,7 +19,11 @@ def api_bp(discord):
 
   @api_control.route('/api/authorized')
   async def isAuthorized():
-    
+    '''
+      Comprobar si el usuario está autorizado.
+      :return Value:
+        Booleano con la autorización
+    '''
     #Value = await discord.authorized
     Value = True
 
