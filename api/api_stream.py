@@ -32,7 +32,7 @@ def stream_bp(discord, db, dc):
 
     for x in twitchres:
       if x["platform"] == "twitch":
-        twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": x["type"]}) 
+        twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
 
     return jsonify(twitch)
 
