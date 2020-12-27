@@ -13,6 +13,32 @@ def stream_bp(discord, db, dc):
   async def redirect_unauthorized(e):
       return redirect("/api/login")
 
+  @stream_c.route("/api/update_streams", methods=["POST"])
+  async def updateStreams():
+    '''
+    '''
+
+    data = await request.get_json()
+    try: 
+      guild = int(data['guild'])
+      streams = data['streams']
+    except: 
+      return "", 400
+
+    # delete old data
+
+    await dc.execute("DELETE FROM social WHERE guild = ?", (guild,))
+
+    for st in streams:
+      
+      await dc.execute('''INSERT INTO 
+      social(guild, name, platform, channel, type)
+      VALUES(?,?,?,?,?)
+      ''', (guild, st['name'], 'twitch', st['channel'], st['type']))
+
+    await db.commit()
+
+    return "", 200
 
   @stream_c.route("/api/streams")
   #@requires_authorization
