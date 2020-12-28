@@ -35,8 +35,13 @@ app.register_blueprint(api_bp(discord_module))
 from api.api_stream import stream_bp
 app.register_blueprint(stream_bp(discord_module, dbase, dcursor))
 
+from api.api_msg import msg_bp
+app.register_blueprint(msg_bp(discord_module, dbase, dcursor))
+
 from api.api_requests import request_bp
 app.register_blueprint(request_bp(discord_module))
+
+
 
 @app.errorhandler(404)
 async def react_router_handle(e):
