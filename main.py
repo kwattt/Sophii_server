@@ -38,6 +38,9 @@ app.register_blueprint(stream_bp(discord_module, dbase, dcursor))
 from api.api_msg import msg_bp
 app.register_blueprint(msg_bp(discord_module, dbase, dcursor))
 
+from api.api_extra import extra_bp
+app.register_blueprint(extra_bp(discord_module, dbase, dcursor))
+
 from api.api_requests import request_bp
 app.register_blueprint(request_bp(discord_module, dbase, dcursor))
 

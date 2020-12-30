@@ -66,7 +66,7 @@ def request_bp(discord, db, dc):
 
       welcome = str(res['welcome'])
       cumple = str(res['birthday'])
-      stalk_ch = str(res['stalk'])
+      stalk = str(res['stalk'])
 
       rols = []
       channs = []
@@ -83,7 +83,7 @@ def request_bp(discord, db, dc):
                       "roles": rols,
                       "welcome": welcome,
                       "bday": cumple,
-                      "stalk": stalk_ch})
+                      "stalk": stalk})
 
     else: 
       # guild no registrada.
