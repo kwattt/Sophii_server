@@ -1,4 +1,5 @@
 from quart_discord import DiscordOAuth2Session
+from dotenv import load_dotenv, find_dotenv
 
 from quart import Quart, send_from_directory
 import asyncio
@@ -8,6 +9,7 @@ import aiosqlite
 from commons import loadFile
 from config import configure_app
 
+load_dotenv(find_dotenv())
 app = Quart(__name__, static_folder='build/build',static_url_path='')
 configure_app(app)
 

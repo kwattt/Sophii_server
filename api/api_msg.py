@@ -16,8 +16,11 @@ def msg_bp(discord, db, dc):
       oraculo = data['oraculo']
       welcome = data['welcome']
       leave = data['leave']
+      channel = data["channel"]
     except: 
       return "", 400
+
+    await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
 
     ent = welcome.replace("\n", "").split(";")
     sal = leave.replace("\n", "").split(";")
@@ -61,6 +64,10 @@ def msg_bp(discord, db, dc):
     if not guild: 
       return "", 400
 
+    datad = await db.execute("SELECT welcome FROM servidores WHERE guild=?", (guild, ))
+    data = await datad.fetchall()
+    welcome = data[0][0]
+
     extraE = await db.execute("SELECT * FROM oraculo WHERE guild=?", (guild, ))
     extraD =  await extraE.fetchall()
     temp = []
@@ -83,6 +90,9 @@ def msg_bp(discord, db, dc):
     ent = ";\n\n".join(ent)
     sal = ";\n\n".join(sal)
 
-    return jsonify({"oraculo": oraculo, "join": ent, "leave": sal})
+    return jsonify({"channel":welcome, 
+                    "oraculo": oraculo, 
+                    "join": ent, 
+                    "leave": sal})
 
   return msg_c
