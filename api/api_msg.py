@@ -57,10 +57,17 @@ def msg_bp(discord, db, dc):
     if "oraculo" in props:
       oraculo = props["oraculo"]
 
+      oraculo = oraculo.replace("\n", "").split(";")
+
+      for msg in oraculo:
+          try:
+              msg.format(123)
+          except IndexError:
+              return "", 400
+
       await dc.execute("DELETE from oraculo WHERE guild=?", (guild,))
 
-      msgs = oraculo.replace("\n", "").split(";")
-      for msg in msgs:
+      for msg in oraculo:
           if msg:
               await dc.execute("INSERT INTO oraculo(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
 
