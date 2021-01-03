@@ -17,8 +17,8 @@ def extra_bp(discord, db, dc):
     except: 
       return "", 400
 
+
     if "bday" in props:
-      
       bday = props["bday"]
       bdaymsg = props["bdaymsg"]
       bdayutc = props["bdayutc"]
@@ -55,7 +55,6 @@ def extra_bp(discord, db, dc):
 
     return "", 200
 
-
   @extra_c.route("/api/extra")
   async def Stalk():
 
@@ -87,14 +86,37 @@ def extra_bp(discord, db, dc):
         temp.append(str(x["role"]))
     stalk_roles = temp
 
-    if not bday:
-      bday = "{}"
-
     return jsonify({"role": stalk_roles, 
                     "msg": stalk_msg,
                     "bday": bday,
                     "stalk": stalk,
                     "bdaymsg": bdaymsg,
                     "bdayutc": bdayutc})
+
+  @extra_c.route("/api/purge")
+  #@requires_authorization
+  async def Streams():
+    '''
+      
+    '''
+
+    guild = request.args.get("guild")
+    if not guild: 
+      return "", 400
+
+    datad = await dc.execute("SELECT * FROM purge WHERE guild=?", (guild, ))
+    res =  await datad.fetchall()
+
+    purge = []
+
+    for x in res:
+      purge.append({
+        "channel": str(x["channel"]),
+        "hour": x["hour"], 
+        "minute": x["minute"], 
+        "utc": x["utc"]}) 
+
+    return jsonify(purge)
+
 
   return extra_c
