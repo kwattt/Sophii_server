@@ -93,11 +93,32 @@ def extra_bp(discord, db, dc):
                     "bdaymsg": bdaymsg,
                     "bdayutc": bdayutc})
 
+
+  @extra_c.route("/api/updatePurge", methods=["POST"])
+  async def updatePurge():
+
+    data = await request.get_json()
+    try: 
+      guild = int(data['guild'])
+      props = data["data"]
+    except: 
+      return "", 400
+
+
+    await dc.execute("DELETE FROM purge WHERE guild = ?", (guild, ))
+
+    for x in props:
+      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, x["channel"], x["hour"], x["minute"], x["utc"], ))
+
+    await db.commit()
+
+    return "", 200
+
   @extra_c.route("/api/purge")
   #@requires_authorization
   async def Streams():
     '''
-      
+
     '''
 
     guild = request.args.get("guild")
