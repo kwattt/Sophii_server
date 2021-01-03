@@ -13,22 +13,43 @@ def extra_bp(discord, db, dc):
     data = await request.get_json()
     try: 
       guild = int(data['guild'])
-      role = data["role"]
-      msg = data["msg"]
-      bday = data["bday"]
-      bdaymsg = data["bdaymsg"]
-      bdayutc = data["bdayutc"]
+      props = data["data"]
     except: 
       return "", 400
 
-    # add check for bdaymsg {} <-
+    if "bday" in props:
+      
+      bday = props["bday"]
+      bdaymsg = props["bdaymsg"]
+      bdayutc = props["bdayutc"]
 
-    await dc.execute("UPDATE servidores SET birthday = ?, bdaymsg = ?, bdayutc = ? WHERE guild = ?", (bday, bdaymsg, bdayutc, guild, ))
+      try:
+          bdaymsg.format(123)
+      except IndexError:
+          return "", 400
 
-    await dc.execute("DELETE FROM stalkroles WHERE guild = ?", (guild,))
+      await dc.execute("UPDATE servidores SET birthday = ?, bdaymsg = ?, bdayutc = ? WHERE guild = ?", (bday, bdaymsg, bdayutc, guild, ))
 
-    for rol in role:
-      await dc.execute("INSERT INTO stalkroles(guild, role) VALUES(?,?)", (guild, rol,))
+    if "role" in props:
+
+      stalk = props["stalk"]
+      role = props["role"]
+
+      await dc.execute("UPDATE servidores SET stalk = ? WHERE guild = ?", (stalk, guild, ))
+      await dc.execute("DELETE FROM stalkroles WHERE guild = ?", (guild,))
+
+      for rol in role:
+        await dc.execute("INSERT INTO stalkroles(guild, role) VALUES(?,?)", (guild, rol,))
+
+    if "msg" in props:
+      msgs = props["msg"]
+
+      await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
+
+      values = msgs.replace("\n", "").split(";")
+      for msg in values:
+          if msg:
+              await dc.execute("INSERT INTO stalkmsg(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
 
     await db.commit()
 
