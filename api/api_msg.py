@@ -13,46 +13,56 @@ def msg_bp(discord, db, dc):
     data = await request.get_json()
     try: 
       guild = int(data['guild'])
-      oraculo = data['oraculo']
-      welcome = data['welcome']
-      leave = data['leave']
-      channel = data["channel"]
+      props = data["data"]
     except: 
       return "", 400
 
-    await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
+    if "channel" in props:
+      channel = props["channel"]
+      await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
 
-    ent = welcome.replace("\n", "").split(";")
-    sal = leave.replace("\n", "").split(";")
+    if "join" in props:
+      join = props["join"]
+      ent = join.replace("\n", "").split(";")
 
-    for msg in ent:
-        try:
-            msg.format(123)
-        except IndexError:
-            return jsonify({"invalid": 1}), 400
+      for msg in ent:
+          try:
+              msg.format(123)
+          except IndexError:
+              return "", 400
 
-    for msg in sal:
-        try:
-            msg.format(123)
-        except IndexError:
-            return jsonify({"invalid": 2}), 400
+      await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=0", (guild,))
+    
+      for msg in ent:
+          if msg:
+              await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,0,msg.lstrip(),))
 
-    await dc.execute("DELETE from oraculo WHERE guild=?", (guild,))
+    if "leave" in props:
+      leave = props["leave"]
 
-    msgs = oraculo.replace("\n", "").split(";")
-    for msg in msgs:
-        if msg:
-            await dc.execute("INSERT INTO oraculo(guild,msg) VALUES(?,?)", (guild,msg,))
+      sal = leave.replace("\n", "").split(";")
 
-    await dc.execute("DELETE from WELCOME WHERE guild=?", (guild,))
+      for msg in sal:
+          try:
+              msg.format(123)
+          except IndexError:
+              return "", 400
 
-    for msg in ent:
-        if msg:
-            await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,0,msg,))
+      await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=1", (guild,))
 
-    for msg in sal:
-        if msg:
-            await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,1,msg,))
+      for msg in sal:
+          if msg:
+              await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,1,msg.lstrip(),))
+
+    if "oraculo" in props:
+      oraculo = props["oraculo"]
+
+      await dc.execute("DELETE from oraculo WHERE guild=?", (guild,))
+
+      msgs = oraculo.replace("\n", "").split(";")
+      for msg in msgs:
+          if msg:
+              await dc.execute("INSERT INTO oraculo(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
 
     await db.commit()
 
