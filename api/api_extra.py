@@ -76,6 +76,10 @@ def extra_bp(discord, db, dc):
 
     datad = await dc.execute("SELECT stalk, bdaymsg, birthday, bdayutc FROM servidores WHERE guild=?", (guild, ))
     data =  await datad.fetchall() 
+
+    if not data:
+      return "", 400
+
     data = data[0]
 
     stalk = data["stalk"]

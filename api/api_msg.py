@@ -19,7 +19,6 @@ def msg_bp(discord, db, dc):
 
     if "channel" in props:
       channel = props["channel"]
-      
       if(len(channel) > 25):
         return "", 400
 
