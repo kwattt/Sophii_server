@@ -19,11 +19,19 @@ def msg_bp(discord, db, dc):
 
     if "channel" in props:
       channel = props["channel"]
+      
+      if(len(channel) > 25):
+        return "", 400
+
       await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
 
     if "join" in props:
       join = props["join"]
       ent = join.replace("\n", "").split(";")
+
+      if len(join) > 1500:
+        return "", 400
+
 
       for msg in ent:
           try:
@@ -39,6 +47,9 @@ def msg_bp(discord, db, dc):
 
     if "leave" in props:
       leave = props["leave"]
+
+      if len(leave) > 1500:
+        return "", 400
 
       sal = leave.replace("\n", "").split(";")
 
@@ -56,6 +67,9 @@ def msg_bp(discord, db, dc):
 
     if "oraculo" in props:
       oraculo = props["oraculo"]
+
+      if len(oraculo) > 1500:
+        return "", 400
 
       oraculo = oraculo.replace("\n", "").split(";")
 
@@ -83,7 +97,7 @@ def msg_bp(discord, db, dc):
 
     datad = await db.execute("SELECT welcome FROM servidores WHERE guild=?", (guild, ))
     data = await datad.fetchall()
-    welcome = data[0][0]
+    welcome = str(data[0][0])
 
     extraE = await db.execute("SELECT * FROM oraculo WHERE guild=?", (guild, ))
     extraD =  await extraE.fetchall()

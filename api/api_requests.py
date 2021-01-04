@@ -16,7 +16,7 @@ def request_bp(discord, db, dc):
     request_c.ipc_node = await web_ipc.discover()
 
 
-  @request_c.route("/api/get_guilds")
+  @request_c.route("/api/getGuilds")
   async def getguilds():
     bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
     #q_guilds = await discord.fetch_guilds()
@@ -48,7 +48,7 @@ def request_bp(discord, db, dc):
 
     return "", 200
 
-  @request_c.route("/api/get_guild_info")
+  @request_c.route("/api/getGuildInfo")
   async def get_info():
     '''
     '''
@@ -67,6 +67,7 @@ def request_bp(discord, db, dc):
       welcome = str(res['welcome'])
       cumple = str(res['birthday'])
       stalk = str(res['stalk'])
+      tipo = str(res['type'])
 
       rols = []
       channs = []
@@ -83,7 +84,8 @@ def request_bp(discord, db, dc):
                       "roles": rols,
                       "welcome": welcome,
                       "bday": cumple,
-                      "stalk": stalk})
+                      "stalk": stalk,
+                      "tipo": tipo})
 
     else: 
       # guild no registrada.

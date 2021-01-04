@@ -17,8 +17,8 @@ def extra_bp(discord, db, dc):
     except: 
       return "", 400
 
-
     if "bday" in props:
+
       bday = props["bday"]
       bdaymsg = props["bdaymsg"]
       bdayutc = props["bdayutc"]
@@ -27,6 +27,10 @@ def extra_bp(discord, db, dc):
           bdaymsg.format(123)
       except IndexError:
           return "", 400
+
+
+      if len(bdaymsg) > 350:
+        return "", 400
 
       await dc.execute("UPDATE servidores SET birthday = ?, bdaymsg = ?, bdayutc = ? WHERE guild = ?", (bday, bdaymsg, bdayutc, guild, ))
 
@@ -42,7 +46,11 @@ def extra_bp(discord, db, dc):
         await dc.execute("INSERT INTO stalkroles(guild, role) VALUES(?,?)", (guild, rol,))
 
     if "msg" in props:
+
       msgs = props["msg"]
+
+      if len(msgs) > 1000:
+        return "", 400
 
       await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
 

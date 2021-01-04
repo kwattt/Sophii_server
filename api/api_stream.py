@@ -19,20 +19,27 @@ def stream_bp(discord, db, dc):
     '''
 
     data = await request.get_json()
-    print(data)
     try: 
       guild = int(data['guild'])
       props = data["data"]
     except: 
       return "", 400
 
-    # delete old data
+    tipod = await db.execute("SELECT type FROM servidores WHERE guild=?", (guild, ))
+    tipo =  await tipod.fetchall()
+    tipo = tipo[0][0]
+
+    props = props["twitch"]
+
+    if tipo == 0 and len(props) > 3:
+      return "", 400 
 
     await dc.execute("DELETE FROM social WHERE guild = ?", (guild,))
 
-    props = props["twitch"]
     for st in props:
-      
+      if len(st["name"]) > 30:
+        return "", 400
+
       await dc.execute('''INSERT INTO 
       social(guild, name, platform, channel, type)
       VALUES(?,?,?,?,?)
@@ -63,5 +70,6 @@ def stream_bp(discord, db, dc):
         twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
 
     return jsonify({"twitch": twitch})
+
 
   return stream_c

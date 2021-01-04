@@ -29,6 +29,10 @@ def api_bp(discord):
 
     return jsonify({"Auth": Value})
 
+  @api_control.route('/api/revoke/')
+  async def revoked():
+    discord.revoke()
+
   @api_control.route('/api/oauthds/')
   async def redirect_oauth():
     '''
