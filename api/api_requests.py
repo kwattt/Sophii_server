@@ -117,4 +117,8 @@ def request_bp(discord, db, dc):
                       "stalk": 0,
                       "tipo": 0})
 
+  @request_c.errorhandler(Unauthorized)
+  async def redirect_unauthorized(e):
+      return redirect("/api/login")
+
   return request_c
