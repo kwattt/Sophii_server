@@ -6,3 +6,7 @@ __pycache__/
 .vscode/
 info.log
 .pytest_cache/
+build/
+build/build/index.html
+test_index.py
+Sophii.code-workspace
