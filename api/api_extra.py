@@ -21,7 +21,11 @@ def extra_bp(discord, db, dc):
 
       bday = props["bday"]
       bdaymsg = props["bdaymsg"]
-      bdayutc = props["bdayutc"]
+
+      try: 
+        bdayutc = int(props["bdayutc"])
+      except:
+        return "", 400
 
       try:
           bdaymsg.format(123)
@@ -116,7 +120,15 @@ def extra_bp(discord, db, dc):
     await dc.execute("DELETE FROM purge WHERE guild = ?", (guild, ))
 
     for x in props:
-      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, x["channel"], x["hour"], x["minute"], x["utc"], ))
+      try: 
+        canal = x["channel"]
+        hora = int(x["hour"]) 
+        minuto = int(x["minute"])
+        utc = int(x["utc"])
+      except:
+        return "", 400
+
+      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc ))
 
     await db.commit()
 

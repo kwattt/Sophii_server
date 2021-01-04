@@ -46,6 +46,8 @@ app.register_blueprint(extra_bp(discord_module, dbase, dcursor))
 from api.api_requests import request_bp
 app.register_blueprint(request_bp(discord_module, dbase, dcursor))
 
+from api.api_account import account_bp
+app.register_blueprint(account_bp(discord_module, dbase, dcursor))
 
 
 @app.errorhandler(404)
