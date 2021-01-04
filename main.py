@@ -49,7 +49,6 @@ app.register_blueprint(request_bp(discord_module, dbase, dcursor))
 from api.api_account import account_bp
 app.register_blueprint(account_bp(discord_module, dbase, dcursor))
 
-
 @app.errorhandler(404)
 async def react_router_handle(e):
   '''
