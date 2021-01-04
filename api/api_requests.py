@@ -23,7 +23,7 @@ def request_bp(discord, db, dc):
   async def getguilds():
 
     if os.environ.get('DISABLE_AUTH') == 'True':
-      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(254672103465418752)))
 
       guildss = []
       for c in bot_guilds:
