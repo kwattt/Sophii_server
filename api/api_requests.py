@@ -21,9 +21,9 @@ def request_bp(discord, db, dc):
 
   @request_c.route("/api/getGuilds")
   async def getguilds():
-    bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
 
     if os.environ.get('DISABLE_AUTH') == 'True':
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
 
       guildss = []
       for c in bot_guilds:
@@ -31,8 +31,14 @@ def request_bp(discord, db, dc):
 
     else:
 
+      Value = await discord.authorized
+      if not Value: 
+        return False  
+
       user = await discord.fetch_user()
       uid = user.id
+
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
 
       q_guilds = await discord.fetch_guilds()
       await dc.execute("DELETE FROM access WHERE id = ?", (uid, ))
