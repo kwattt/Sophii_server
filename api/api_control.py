@@ -16,7 +16,7 @@ def api_bp(discord):
     '''
       Redirigir a discord para su autentificación
     '''
-    return await discord.create_session()
+    return await discord.create_session(scope=["identify"])
 
   @api_control.route('/api/authorized')
   async def isAuthorized():

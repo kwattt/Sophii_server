@@ -68,7 +68,6 @@ def account_bp(discord, db, dc):
       user = await discord.fetch_user()
       uid = user.id
 
-    uid = "254672103465418752"
     datad = await dc.execute("SELECT * FROM users WHERE id = ?", (uid, ))
     data = await datad.fetchall()
 

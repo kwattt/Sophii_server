@@ -102,7 +102,7 @@ def request_bp(discord, db, dc):
           channs.append({"name": x.name,"id": str(x.id)})
       
 
-      await dc.execute("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type) VALUES(?,?,?,?,?)", (guild, 0, 0, 0, " ", 0, 0, ))
+      await dc.execute("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type) VALUES(?,?,?,?,?,?,?)", (guild, 0, 0, 0, " ", 0, 0, ))
 
       return jsonify({"channels": channs, 
                       "roles": rols,
