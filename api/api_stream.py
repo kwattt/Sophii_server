@@ -3,15 +3,14 @@ from quart_discord import requires_authorization, Unauthorized
 
 import aiosqlite
 
+from auth import has_access
+
+
 def stream_bp(discord, db, dc):
   '''
   '''
 
   stream_c = Blueprint("stream_c", __name__)
-
-  @stream_c.errorhandler(Unauthorized)
-  async def redirect_unauthorized(e):
-      return redirect("/api/login")
 
   @stream_c.route("/api/updateSocial", methods=["POST"])
   async def updateStreams():
@@ -24,6 +23,9 @@ def stream_bp(discord, db, dc):
       props = data["data"]
     except: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     tipod = await db.execute("SELECT type FROM servidores WHERE guild=?", (guild, ))
     tipo =  await tipod.fetchall()
@@ -59,6 +61,9 @@ def stream_bp(discord, db, dc):
     guild = request.args.get("guild")
     if not guild: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     twitchdata = await db.execute("SELECT * FROM social WHERE guild=?", (guild, ))
     twitchres =  await twitchdata.fetchall()

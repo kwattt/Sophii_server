@@ -1,5 +1,6 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
+import os 
 
 def api_bp(discord):
   '''
@@ -24,14 +25,20 @@ def api_bp(discord):
       :return Value:
         Booleano con la autorización
     '''
-    #Value = await discord.authorized
-    Value = True
+
+    Value = False
+
+    if os.environ.get('DISABLE_AUTH') == 'True':
+      Value = True
+    else:
+      Value = await discord.authorized
 
     return jsonify({"Auth": Value})
 
   @api_control.route('/api/revoke/')
   async def revoked():
     discord.revoke()
+    return redirect("/")
 
   @api_control.route('/api/oauthds/')
   async def redirect_oauth():

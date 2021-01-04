@@ -3,6 +3,9 @@ from quart_discord import requires_authorization, Unauthorized
 from discord.ext.ipc import Client
 import os 
 
+from auth import has_access
+
+
 from commons import loadFile, objectview
 def request_bp(discord, db, dc):
 
@@ -19,34 +22,31 @@ def request_bp(discord, db, dc):
   @request_c.route("/api/getGuilds")
   async def getguilds():
     bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
-    #q_guilds = await discord.fetch_guilds()
-    guildss = []
 
-    #mal algoritmo. NECESITA CMABIOS.
+    if os.environ.get('DISABLE_AUTH') == 'True':
 
-#      for x in q_guilds:
-    for c in bot_guilds:
-#              if x.permissions.administrator and c.id == x.id:
-      guildss.append({"id": str(c.id), "name": c.name})
+      guildss = []
+      for c in bot_guilds:
+        guildss.append({"id": str(c.id), "name": c.name})
+
+    else:
+
+      user = await discord.fetch_user()
+      uid = user.id
+
+      q_guilds = await discord.fetch_guilds()
+      await dc.execute("DELETE FROM access WHERE id = ?", (uid, ))
+
+      guildss = []
+      for x in q_guilds:
+        for c in bot_guilds:
+          if x.permissions.administrator and c.id == x.id:
+            guildss.append({"id": str(c.id), "name": c.name})
+            await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
+
+      await db.commit()
 
     return jsonify(guildss)
-
-  @request_c.route("/api/updateGuild", methods=["POST"])
-  async def updateGuild():
-
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      stalk = data['stalk']
-      bday = data['bday']
-      welcome = data['welcome']
-    except: 
-      return "", 400
-
-    await dc.execute("UPDATE servidores SET welcome = ?, stalk = ?, birthday = ? WHERE guild = ?", (welcome, stalk, bday, guild, ))
-    await db.commit()
-
-    return "", 200
 
   @request_c.route("/api/getGuildInfo")
   async def get_info():
@@ -57,6 +57,8 @@ def request_bp(discord, db, dc):
     if not guild: 
       return "", 400
 
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     data = await db.execute("SELECT * FROM servidores WHERE guild=?", (guild, ))
     res = await data.fetchall()
@@ -88,7 +90,25 @@ def request_bp(discord, db, dc):
                       "tipo": tipo})
 
     else: 
-      # guild no registrada.
-      return ""
+      rols = []
+      channs = []
+
+      bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
+      for x in bot_guild_role:
+          rols.append({"name": x.name,"id": str(x.id)})
+
+      bot_guild_channels = objectview(await request_c.ipc_node.request("get_guild_channels", eid=guild))
+      for x in bot_guild_channels:
+          channs.append({"name": x.name,"id": str(x.id)})
+      
+
+      await dc.execute("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type) VALUES(?,?,?,?,?)", (guild, 0, 0, 0, " ", 0, 0, ))
+
+      return jsonify({"channels": channs, 
+                      "roles": rols,
+                      "welcome": 0,
+                      "bday": 0,
+                      "stalk": 0,
+                      "tipo": 0})
 
   return request_c

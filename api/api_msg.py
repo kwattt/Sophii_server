@@ -3,6 +3,9 @@ from quart_discord import requires_authorization, Unauthorized
 
 import aiosqlite
 
+from auth import has_access
+
+
 def msg_bp(discord, db, dc):
 
   msg_c = Blueprint("msg_c", __name__)
@@ -16,6 +19,9 @@ def msg_bp(discord, db, dc):
       props = data["data"]
     except: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     if "channel" in props:
       channel = props["channel"]
@@ -93,6 +99,9 @@ def msg_bp(discord, db, dc):
     guild = request.args.get("guild")
     if not guild: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     datad = await db.execute("SELECT welcome FROM servidores WHERE guild=?", (guild, ))
     data = await datad.fetchall()

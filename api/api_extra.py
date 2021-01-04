@@ -3,6 +3,8 @@ from quart_discord import requires_authorization, Unauthorized
 
 import aiosqlite
 
+from auth import has_access
+
 def extra_bp(discord, db, dc):
 
   extra_c = Blueprint("extra_c", __name__)
@@ -16,6 +18,9 @@ def extra_bp(discord, db, dc):
       props = data["data"]
     except: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     if "bday" in props:
 
@@ -68,11 +73,14 @@ def extra_bp(discord, db, dc):
     return "", 200
 
   @extra_c.route("/api/extra")
-  async def Stalk():
+  async def Extra():
 
     guild = request.args.get("guild")
     if not guild: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     datad = await dc.execute("SELECT stalk, bdaymsg, birthday, bdayutc FROM servidores WHERE guild=?", (guild, ))
     data =  await datad.fetchall() 
@@ -120,6 +128,8 @@ def extra_bp(discord, db, dc):
     except: 
       return "", 400
 
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     await dc.execute("DELETE FROM purge WHERE guild = ?", (guild, ))
 
@@ -132,7 +142,7 @@ def extra_bp(discord, db, dc):
       except:
         return "", 400
 
-      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc ))
+      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc,))
 
     await db.commit()
 
@@ -148,6 +158,9 @@ def extra_bp(discord, db, dc):
     guild = request.args.get("guild")
     if not guild: 
       return "", 400
+
+    if not (await has_access(discord, guild, dc)):
+      return "", 401
 
     datad = await dc.execute("SELECT * FROM purge WHERE guild=?", (guild, ))
     res =  await datad.fetchall()
