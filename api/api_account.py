@@ -18,8 +18,8 @@ def account_bp(discord, db, dc):
       if not Value:
         return "", 401
 
-      user = await discord.fetch_user()
-      uid = user.id
+    user = await discord.fetch_user()
+    uid = user.id
 
     data = await request.get_json()
     try: 
