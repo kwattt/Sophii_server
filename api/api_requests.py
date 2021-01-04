@@ -46,9 +46,10 @@ def request_bp(discord, db, dc):
       guildss = []
       for x in q_guilds:
         for c in bot_guilds:
-          if x.permissions.administrator and c.id == x.id:
-            guildss.append({"id": str(c.id), "name": c.name})
-            await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
+          if c.id == x.id:
+            if x.permissions.administrator:
+              guildss.append({"id": str(c.id), "name": c.name})
+              await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
 
       await db.commit()
 
