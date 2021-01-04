@@ -23,7 +23,7 @@ def request_bp(discord, db, dc):
   async def getguilds():
 
     if os.environ.get('DISABLE_AUTH') == 'True':
-      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
 
       guildss = []
       for c in bot_guilds:
@@ -38,18 +38,13 @@ def request_bp(discord, db, dc):
       user = await discord.fetch_user()
       uid = user.id
 
-      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
-
-      q_guilds = await discord.fetch_guilds()
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
       await dc.execute("DELETE FROM access WHERE id = ?", (uid, ))
 
       guildss = []
-      for x in q_guilds:
-        for c in bot_guilds:
-          if c.id == x.id:
-            if x.permissions.administrator:
-              guildss.append({"id": str(c.id), "name": c.name})
-              await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
+      for c in bot_guilds:
+        guildss.append({"id": str(c.id), "name": c.name})
+        await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
 
       await db.commit()
 
