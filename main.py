@@ -25,7 +25,7 @@ async def set_db():
     Cargamos la base de datos antes de servir cualquier petición
   '''
   global dbase, dcursor
-  dbase = await aiosqlite.connect('../config/test.db')
+  dbase = await aiosqlite.connect(os.environ.get('CONFIG_POS') + 'test.db')
   dbase.row_factory = aiosqlite.Row
   dcursor = await dbase.cursor()
 asyncio.run(set_db())
