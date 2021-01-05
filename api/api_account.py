@@ -17,9 +17,8 @@ def account_bp(discord, db, dc):
       Value = await discord.authorized
       if not Value:
         return "", 401
-
-    user = await discord.fetch_user()
-    uid = user.id
+      user = await discord.fetch_user()
+      uid = user.id
 
     data = await request.get_json()
     try: 
@@ -60,13 +59,16 @@ def account_bp(discord, db, dc):
     uid = "0"
     if os.environ.get('DISABLE_AUTH') == 'True':
       uid = "254672103465418752"
+      avatar = "https://cdn.discordapp.com/avatars/254672103465418752/27f79b3bb7aa47f7d6e8c79521aff41f.png"
+      name = "kv"
     else:
       Value = await discord.authorized
       if not Value:
         return "", 401
-
       user = await discord.fetch_user()
       uid = user.id
+      avatar = user.avatar_url
+      name = str(user)
 
     datad = await dc.execute("SELECT * FROM users WHERE id = ?", (uid, ))
     data = await datad.fetchall()
@@ -76,11 +78,15 @@ def account_bp(discord, db, dc):
       return jsonify({
         "enabled": 1, 
         "day": data["day"], 
-        "month" : data["month"]})
+        "month" : data["month"],
+        "avatar": avatar,
+        "name": name})
     else:
       return jsonify({
         "enabled": 0, 
         "day": 1, 
-        "month" : 1})
+        "month" : 1,
+        "avatar": avatar,
+        "name": name})
 
   return api_account
