@@ -21,9 +21,9 @@ def request_bp(discord, db, dc):
 
   @request_c.route("/api/getGuilds")
   async def getguilds():
-    bot_guilds = objectview(await request_c.ipc_node.request("get_guilds"))
 
     if os.environ.get('DISABLE_AUTH') == 'True':
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(254672103465418752)))
 
       guildss = []
       for c in bot_guilds:
@@ -31,18 +31,20 @@ def request_bp(discord, db, dc):
 
     else:
 
+      Value = await discord.authorized
+      if not Value: 
+        return False  
+
       user = await discord.fetch_user()
       uid = user.id
 
-      q_guilds = await discord.fetch_guilds()
+      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
       await dc.execute("DELETE FROM access WHERE id = ?", (uid, ))
 
       guildss = []
-      for x in q_guilds:
-        for c in bot_guilds:
-          if x.permissions.administrator and c.id == x.id:
-            guildss.append({"id": str(c.id), "name": c.name})
-            await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
+      for c in bot_guilds:
+        guildss.append({"id": str(c.id), "name": c.name})
+        await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
 
       await db.commit()
 
@@ -110,5 +112,9 @@ def request_bp(discord, db, dc):
                       "bday": 0,
                       "stalk": 0,
                       "tipo": 0})
+
+  @request_c.errorhandler(Unauthorized)
+  async def redirect_unauthorized(e):
+      return redirect("/api/login")
 
   return request_c

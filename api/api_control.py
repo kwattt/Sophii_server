@@ -1,5 +1,5 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
-from quart_discord import requires_authorization, Unauthorized
+from quart_discord import requires_authorization, Unauthorized, AccessDenied
 import os 
 
 def api_bp(discord):
@@ -51,5 +51,9 @@ def api_bp(discord):
   @api_control.errorhandler(Unauthorized)
   async def redirect_unauthorized(e):
       return redirect("/api/login")
+
+  @api_control.errorhandler(AccessDenied)
+  async def redirect_deny(e):
+      return redirect("/")
 
   return api_control
