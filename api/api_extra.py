@@ -34,9 +34,8 @@ def extra_bp(discord, db, dc):
 
       try:
           bdaymsg.format(123)
-      except IndexError:
+      except (IndexError, KeyError):
           return "", 400
-
 
       if len(bdaymsg) > 350:
         return "", 400
@@ -63,14 +62,12 @@ def extra_bp(discord, db, dc):
 
       await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
 
-
-
       values = msgs.replace("\n", "").split(";")
 
       for msg in values:
           try:
               msg.format(123)
-          except IndexError:
+          except (IndexError, KeyError):
               return "", 400
 
       for msg in values:

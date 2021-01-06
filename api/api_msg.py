@@ -41,7 +41,7 @@ def msg_bp(discord, db, dc):
       for msg in ent:
           try:
               msg.format(123)
-          except IndexError:
+          except (IndexError, KeyError):
               return "", 400
 
       await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=0", (guild,))
@@ -61,7 +61,7 @@ def msg_bp(discord, db, dc):
       for msg in sal:
           try:
               msg.format(123)
-          except IndexError:
+          except (IndexError, KeyError):
               return "", 400
 
       await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=1", (guild,))
@@ -81,7 +81,7 @@ def msg_bp(discord, db, dc):
       for msg in oraculo:
           try:
               msg.format(123)
-          except IndexError:
+          except (IndexError, KeyError):
               return "", 400
 
       await dc.execute("DELETE from oraculo WHERE guild=?", (guild,))
