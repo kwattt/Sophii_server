@@ -101,7 +101,7 @@ def extra_bp(discord, db, dc):
 
     stalk = data["stalk"]
     bdaymsg = data["bdaymsg"]
-    bday = data["birthday"]
+    bday = str(data["birthday"])
     bdayutc = data["bdayutc"]
 
     stalkdata = await dc.execute("SELECT * FROM stalkmsg WHERE guild=?", (guild, ))
