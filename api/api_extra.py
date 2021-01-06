@@ -34,7 +34,7 @@ def extra_bp(discord, db, dc):
 
       try:
           bdaymsg.format(123)
-      except (IndexError, KeyError):
+      except (IndexError, KeyError, ValueError):
           return "", 400
 
       if len(bdaymsg) > 350:
@@ -67,7 +67,7 @@ def extra_bp(discord, db, dc):
       for msg in values:
           try:
               msg.format(123)
-          except (IndexError, KeyError):
+          except (IndexError, KeyError, ValueError):
               return "", 400
 
       for msg in values:
