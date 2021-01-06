@@ -43,9 +43,9 @@ def stream_bp(discord, db, dc):
         return "", 400
 
       await dc.execute('''INSERT INTO 
-      social(guild, name, platform, channel, type)
-      VALUES(?,?,?,?,?)
-      ''', (guild, st['name'], 'twitch', st['channel'], st['type']))
+      social(guild, name, platform, channel, type, live, last_update)
+      VALUES(?,?,?,?,?,?,?)
+      ''', (guild, st['name'], 'twitch', st['channel'], st['type'],0,0.0,))
 
     await db.commit()
 
