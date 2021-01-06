@@ -63,7 +63,16 @@ def extra_bp(discord, db, dc):
 
       await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
 
+
+
       values = msgs.replace("\n", "").split(";")
+
+      for msg in values:
+          try:
+              msg.format(123)
+          except IndexError:
+              return "", 400
+
       for msg in values:
           if msg:
               await dc.execute("INSERT INTO stalkmsg(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))

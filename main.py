@@ -1,16 +1,20 @@
-from quart_discord import DiscordOAuth2Session
 from dotenv import load_dotenv, find_dotenv
-
-from quart import Quart, send_from_directory
 import asyncio
 import os
 import aiosqlite
+
+from quart import Quart, send_from_directory
+from quart_session import Session
+from quart_discord import DiscordOAuth2Session
+
 
 from commons import loadFile
 from config import configure_app
 
 load_dotenv(find_dotenv())
 app = Quart(__name__, static_folder='build/build',static_url_path='')
+app.config['SESSION_TYPE'] = 'redis'
+Session(app)
 configure_app(app)
 
 #Inicializamos quart_discord.
