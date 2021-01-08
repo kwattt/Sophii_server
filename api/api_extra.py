@@ -41,6 +41,7 @@ def extra_bp(discord, db, dc):
         return "", 400
 
       await dc.execute("UPDATE servidores SET birthday = ?, bdaymsg = ?, bdayutc = ? WHERE guild = ?", (bday, bdaymsg, bdayutc, guild, ))
+      await db.commit()
 
     if "role" in props:
 
@@ -53,6 +54,8 @@ def extra_bp(discord, db, dc):
       for rol in role:
         await dc.execute("INSERT INTO stalkroles(guild, role) VALUES(?,?)", (guild, rol,))
 
+      await db.commit()
+
     if "msg" in props:
 
       msgs = props["msg"]
@@ -60,7 +63,6 @@ def extra_bp(discord, db, dc):
       if len(msgs) > 1000:
         return "", 400
 
-      await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
 
       values = msgs.replace("\n", "").split(";")
 
@@ -70,11 +72,13 @@ def extra_bp(discord, db, dc):
           except (IndexError, KeyError, ValueError):
               return "", 400
 
+      await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
+
       for msg in values:
           if msg:
               await dc.execute("INSERT INTO stalkmsg(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
 
-    await db.commit()
+      await db.commit()
 
     return "", 200
 
@@ -146,6 +150,7 @@ def extra_bp(discord, db, dc):
         minuto = int(x["minute"])
         utc = int(x["utc"])
       except:
+        await db.rollback()
         return "", 400
 
       await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc,))

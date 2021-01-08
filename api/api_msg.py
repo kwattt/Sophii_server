@@ -29,6 +29,7 @@ def msg_bp(discord, db, dc):
         return "", 400
 
       await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
+      await db.commit()
 
     if "join" in props:
       join = props["join"]
@@ -36,7 +37,6 @@ def msg_bp(discord, db, dc):
 
       if len(join) > 1500:
         return "", 400
-
 
       for msg in ent:
           try:
@@ -49,6 +49,7 @@ def msg_bp(discord, db, dc):
       for msg in ent:
           if msg:
               await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,0,msg.lstrip(),))
+      await db.commit()
 
     if "leave" in props:
       leave = props["leave"]
@@ -69,6 +70,7 @@ def msg_bp(discord, db, dc):
       for msg in sal:
           if msg:
               await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,1,msg.lstrip(),))
+      await db.commit()
 
     if "oraculo" in props:
       oraculo = props["oraculo"]
@@ -89,8 +91,7 @@ def msg_bp(discord, db, dc):
       for msg in oraculo:
           if msg:
               await dc.execute("INSERT INTO oraculo(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
-
-    await db.commit()
+      await db.commit() 
 
     return "", 200
 

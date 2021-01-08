@@ -40,6 +40,7 @@ def stream_bp(discord, db, dc):
 
     for st in props:
       if len(st["name"]) > 30:
+        await db.rollback()
         return "", 400
 
       await dc.execute('''INSERT INTO 
