@@ -153,6 +153,13 @@ def extra_bp(discord, db, dc):
         await db.rollback()
         return "", 400
 
+      if (hora < 0 or hora > 23 or
+        minuto < 0 or minuto > 59 or
+        utc < -12 or utc > 14):
+
+        await db.rollback()
+        return "", 400
+
       await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc,))
 
     await db.commit()
