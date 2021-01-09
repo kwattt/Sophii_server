@@ -2,9 +2,9 @@ from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
 from discord.ext.ipc import Client
 import os 
+import random 
 
 from auth import has_access
-
 
 from commons import loadFile, objectview
 def request_bp(discord, db, dc):
@@ -25,8 +25,7 @@ def request_bp(discord, db, dc):
 
     if res: 
       res = res[0]
-
-      return jsonify({"users": res["users"], "guilds":res["guilds"]})
+      return jsonify({"users": res["users"], "guilds":res["guilds"], "msg": random.choice(cfg['useless'])})
 
     return jsonify({"users":0, "guilds":0})
   @request_c.route("/api/getGuilds")
