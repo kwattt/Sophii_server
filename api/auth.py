@@ -1,4 +1,5 @@
 import os 
+import psycopg2.extras
 
 async def has_access(discord, guild, db):
   if os.environ.get('DISABLE_AUTH') == 'True':
