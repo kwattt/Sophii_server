@@ -45,7 +45,7 @@ def request_bp(discord, db):
                 return False  
 
             user = await discord.fetch_user()
-            uid = user.id
+            uid = str(user.id)
 
             bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
 
