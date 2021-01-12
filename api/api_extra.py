@@ -1,198 +1,202 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
-
-import aiosqlite
+import psycopg2.extras
 
 from auth import has_access
 
-def extra_bp(discord, db, dc):
+from commons import db_commit, db_fetch
 
-  extra_c = Blueprint("extra_c", __name__)
+def extra_bp(discord, db):
 
-  @extra_c.route("/api/updateExtra", methods=["POST"])
-  async def updateExtra():
+    extra_c = Blueprint("extra_c", __name__)
 
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      props = data["data"]
-    except: 
-      return "", 400
+    @extra_c.route("/api/updateExtra", methods=["POST"])
+    async def updateExtra():
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        data = await request.get_json()
+        try: 
+            guild = str(data['guild'])
+            props = data["data"]
+        except: 
+            return "", 400
 
-    if "bday" in props:
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-      bday = props["bday"]
-      bdaymsg = props["bdaymsg"]
+        if "bday" in props:
 
-      try: 
-        bdayutc = int(props["bdayutc"])
-      except:
-        return "", 400
+            try: 
+                bday = str(props["bday"])
+                bdaymsg = str(props["bdaymsg"])
+                bdayutc = int(props["bdayutc"])
+                bdaymsg.format(123)
+            except:
+                return "", 400
 
-      try:
-          bdaymsg.format(123)
-      except (IndexError, KeyError, ValueError):
-          return "", 400
+            if len(bdaymsg) > 350:
+                return "", 400
 
-      if len(bdaymsg) > 350:
-        return "", 400
+            db_commit("UPDATE servidores SET birthday = %s, bdaymsg = %s, bdayutc = %s WHERE guild = %s", (bday, bdaymsg, bdayutc, guild, ), db)
 
-      await dc.execute("UPDATE servidores SET birthday = ?, bdaymsg = ?, bdayutc = ? WHERE guild = ?", (bday, bdaymsg, bdayutc, guild, ))
-      await db.commit()
+        if "role" in props:
 
-    if "role" in props:
+            try:
+                stalk = str(props["stalk"])
+                role = str(props["role"])
+            except:
+                return "", 400
 
-      stalk = props["stalk"]
-      role = props["role"]
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
-      await dc.execute("UPDATE servidores SET stalk = ? WHERE guild = ?", (stalk, guild, ))
-      await dc.execute("DELETE FROM stalkroles WHERE guild = ?", (guild,))
+            dc.execute("UPDATE servidores SET stalk = %s WHERE guild = %s", (stalk, guild, ))
+            dc.execute("DELETE FROM stalkroles WHERE guild = %s", (guild,))
 
-      for rol in role:
-        await dc.execute("INSERT INTO stalkroles(guild, role) VALUES(?,?)", (guild, rol,))
+            for rol in role:
+                dc.execute("INSERT INTO stalkroles(guild, role) VALUES(%s,%s)", (guild, rol,))
 
-      await db.commit()
+            db.commit()
+            dc.close()
 
-    if "msg" in props:
+        if "msg" in props:
 
-      msgs = props["msg"]
+            msgs = props["msg"]
 
-      if len(msgs) > 1000:
-        return "", 400
+            if len(msgs) > 1000:
+                return "", 400
 
+            values = msgs.replace("\n", "").split(";")
 
-      values = msgs.replace("\n", "").split(";")
+            for msg in values:
+                try:
+                    msg.format(123)
+                except (IndexError, KeyError, ValueError):
+                    return "", 400
 
-      for msg in values:
-          try:
-              msg.format(123)
-          except (IndexError, KeyError, ValueError):
-              return "", 400
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE from stalkmsg WHERE guild=%s", (guild,))
 
-      await dc.execute("DELETE from stalkmsg WHERE guild=?", (guild,))
+            for msg in values:
+                if msg:
+                    dc.execute("INSERT INTO stalkmsg(guild,msg) VALUES(%s,%s)", (guild,msg.lstrip(),))
 
-      for msg in values:
-          if msg:
-              await dc.execute("INSERT INTO stalkmsg(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
+            db.commit()
+            dc.close()
 
-      await db.commit()
+        return "", 200
 
-    return "", 200
+    @extra_c.route("/api/extra")
+    async def Extra():
+        
+        try: 
+            guild = request.args.get("guild")
+        except:
+            return "", 400
 
-  @extra_c.route("/api/extra")
-  async def Extra():
-
-    guild = request.args.get("guild")
-    if not guild: 
-      return "", 400
-
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
-
-    datad = await dc.execute("SELECT stalk, bdaymsg, birthday, bdayutc FROM servidores WHERE guild=?", (guild, ))
-    data =  await datad.fetchall() 
-
-    if not data:
-      return "", 400
-
-    data = data[0]
-
-    stalk = data["stalk"]
-    bdaymsg = data["bdaymsg"]
-    bday = str(data["birthday"])
-    bdayutc = data["bdayutc"]
-
-    stalkdata = await dc.execute("SELECT * FROM stalkmsg WHERE guild=?", (guild, ))
-    stalkres =  await stalkdata.fetchall()
-    temp = []
-    for x in stalkres:
-        temp.append(x["msg"])
-    temp = ";\n".join(temp)
-    stalk_msg = temp 
-
-    temp = []
-    stalkdata = await dc.execute("SELECT * FROM stalkroles WHERE guild=?", (guild, ))
-    stalkres =  await stalkdata.fetchall()
-    for x in stalkres:
-        temp.append(str(x["role"]))
-    stalk_roles = temp
-
-    return jsonify({"role": stalk_roles, 
-                    "msg": stalk_msg,
-                    "bday": bday,
-                    "stalk": stalk,
-                    "bdaymsg": bdaymsg,
-                    "bdayutc": bdayutc})
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
 
-  @extra_c.route("/api/updatePurge", methods=["POST"])
-  async def updatePurge():
+        data = db_fetch("SELECT stalk, bdaymsg, birthday, bdayutc FROM servidores WHERE guild=%s", (guild, ), db)
 
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      props = data["data"]
-    except: 
-      return "", 400
+        if not data:
+            return "", 400
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        data = data[0]
 
-    await dc.execute("DELETE FROM purge WHERE guild = ?", (guild, ))
+        stalk = data["stalk"]
+        bdaymsg = data["bdaymsg"]
+        bday = str(data["birthday"])
+        bdayutc = data["bdayutc"]
 
-    for x in props:
-      try: 
-        canal = x["channel"]
-        hora = int(x["hour"]) 
-        minuto = int(x["minute"])
-        utc = int(x["utc"])
-      except:
-        await db.rollback()
-        return "", 400
+        messages = db_fetch("SELECT * FROM stalkmsg WHERE guild=%s", (guild, ), db)
 
-      if (hora < 0 or hora > 23 or
-        minuto < 0 or minuto > 59 or
-        utc < -12 or utc > 14):
+        temp = []
+        for x in messages:
+            temp.append(x["msg"])
+        temp = ";\n".join(temp)
+        stalk_msg = temp 
 
-        await db.rollback()
-        return "", 400
+        temp = []
+        roles = db_fetch("SELECT * FROM stalkroles WHERE guild=%s", (guild, ), db)
+        for x in roles:
+            temp.append(str(x["role"]))
+        stalk_roles = temp
 
-      await dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(?,?,?,?,?)", (guild, canal, hora, minuto, utc,))
-
-    await db.commit()
-
-    return "", 200
-
-  @extra_c.route("/api/purge")
-  #@requires_authorization
-  async def Streams():
-    '''
-
-    '''
-
-    guild = request.args.get("guild")
-    if not guild: 
-      return "", 400
-
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
-
-    datad = await dc.execute("SELECT * FROM purge WHERE guild=?", (guild, ))
-    res =  await datad.fetchall()
-
-    purge = []
-
-    for x in res:
-      purge.append({
-        "channel": str(x["channel"]),
-        "hour": x["hour"], 
-        "minute": x["minute"], 
-        "utc": x["utc"]}) 
-
-    return jsonify(purge)
+        return jsonify({"role": stalk_roles, 
+                        "msg": stalk_msg,
+                        "bday": bday,
+                        "stalk": stalk,
+                        "bdaymsg": bdaymsg,
+                        "bdayutc": bdayutc})
 
 
-  return extra_c
+    @extra_c.route("/api/updatePurge", methods=["POST"])
+    async def updatePurge():
+
+        data = await request.get_json()
+        try: 
+            guild = str(data['guild'])
+            props = data["data"]
+        except: 
+            return "", 400
+
+        if not (await has_access(discord, guild, db)):
+            return "", 401
+
+        dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        dc.execute("DELETE FROM purge WHERE guild = %s", (guild, ))
+
+        for x in props:
+            try: 
+                canal = str(x["channel"])
+                hora = int(x["hour"]) 
+                minuto = int(x["minute"])
+                utc = int(x["utc"])
+            except:
+                db.rollback()
+                dc.close()
+                return "", 400
+
+            if (hora < 0 or hora > 23 or
+                minuto < 0 or minuto > 59 or
+                utc < -12 or utc > 14):
+
+                db.rollback()
+                dc.close()
+                return "", 400
+
+            dc.execute("INSERT INTO purge(guild, channel, hour, minute, utc) VALUES(%s,%s,%s,%s,%s)", (guild, canal, hora, minuto, utc,))
+
+        db.commit()
+        dc.close()
+
+        return "", 200
+
+    @extra_c.route("/api/purge")
+    async def Streams():
+        '''
+
+        '''
+        try:
+            guild = str(request.args.get("guild"))
+        except:
+            return "", 400
+
+        if not (await has_access(discord, guild, db)):
+            return "", 401
+
+        res = db_fetch("SELECT * FROM purge WHERE guild=%s", (guild, ), db)
+
+        purge = []
+
+        for x in res:
+            purge.append({
+                "channel": str(x["channel"]),
+                "hour": x["hour"], 
+                "minute": x["minute"], 
+                "utc": x["utc"]}) 
+
+        return jsonify(purge)
+
+
+    return extra_c

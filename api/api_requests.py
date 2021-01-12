@@ -3,158 +3,164 @@ from quart_discord import requires_authorization, Unauthorized
 from discord.ext.ipc import Client
 import os 
 import random 
+import psycopg2.extras
 
 from auth import has_access
 
-from commons import loadFile, objectview
-def request_bp(discord, db, dc):
+from commons import loadFile, objectview, db_fetch, db_commit
+def request_bp(discord, db):
 
-  config_pos = os.getenv('CONFIG_POS')
-  cfg = loadFile(config_pos + "data.json")
-  web_ipc = Client(secret_key=cfg["IPC_key"])
-  request_c = Blueprint("request_c", __name__)
+    config_pos = os.getenv('CONFIG_POS')
+    cfg = loadFile(config_pos + "data.json")
+    web_ipc = Client(secret_key=cfg["IPC_key"])
+    request_c = Blueprint("request_c", __name__)
 
-  @request_c.before_app_first_request
-  async def before():
-    request_c.ipc_node = await web_ipc.discover()
+    @request_c.before_app_first_request
+    async def before():
+        request_c.ipc_node = await web_ipc.discover()
 
-  @request_c.route("/api/bot")
-  async def getstats():
-    data = await db.execute("SELECT * FROM stats WHERE ts = 0")
-    res = await data.fetchall()
+    @request_c.route("/api/bot")
+    async def getstats():
+        dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        dc.execute("SELECT * FROM stats WHERE ts = 0")
+        res = dc.fetchone()
 
-    if res: 
-      res = res[0]
-      return jsonify({"users": res["users"], "guilds":res["guilds"], "msg": random.choice(cfg['useless'])})
+        if res: 
+            return jsonify({"users": res["users"], "guilds":res["guilds"], "msg": random.choice(cfg['useless'])})
+        else: 
+            return jsonify({"users":0, "guilds":0, "msg": "Uhmmmmmmmm, esto no está bien"})
 
-    return jsonify({"users":0, "guilds":0})
-  @request_c.route("/api/getGuilds")
-  async def getguilds():
+    @request_c.route("/api/getGuilds")
+    async def getguilds():
 
-    if os.environ.get('DISABLE_AUTH') == 'True':
-      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(254672103465418752)))
+        if os.environ.get('DISABLE_AUTH') == 'True':
+            bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(254672103465418752)))
 
-      guildss = []
-      for c in bot_guilds:
-        guildss.append({"id": str(c.id), "name": c.name})
+            guildss = []
+            for c in bot_guilds:
+                guildss.append({"id": str(c.id), "name": c.name})
+        else:
+            Value = await discord.authorized
+            if not Value: 
+                return False  
 
-    else:
+            user = await discord.fetch_user()
+            uid = user.id
 
-      Value = await discord.authorized
-      if not Value: 
-        return False  
+            bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
 
-      user = await discord.fetch_user()
-      uid = user.id
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM access WHERE id = %s", (uid, ))
 
-      bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
-      await dc.execute("DELETE FROM access WHERE id = ?", (uid, ))
+            guildss = []
+            for c in bot_guilds:
+                guildss.append({"id": str(c.id), "name": c.name})
+                dc.execute("INSERT INTO access(id, guild) VALUES(%s,%s)", (uid, c.id,))
 
-      guildss = []
-      for c in bot_guilds:
-        guildss.append({"id": str(c.id), "name": c.name})
-        await dc.execute("INSERT INTO access(id, guild) VALUES(?,?)", (uid, c.id,))
 
-      await db.commit()
+            db.commit()
+            dc.close()
 
-    return jsonify(guildss)
+        return jsonify(guildss)
 
-  @request_c.route("/api/updateGuild", methods=["POST"])
-  async def updateGuild():
-    '''
-    ''' 
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      props = data["data"]
-    except: 
-      return "", 400
+    @request_c.route("/api/updateGuild", methods=["POST"])
+    async def updateGuild():
+        '''
+        ''' 
+        data = await request.get_json()
+        try: 
+            guild = str(data['guild'])
+            props = data["data"]
+        except: 
+            return "", 400
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-    prefix = props["prefix"]
-    if len(prefix) > 6:
-      return "", 400
+        try: 
+            prefix = str(props["prefix"])
+        except: 
+            return "", 400
 
-    await dc.execute("UPDATE servidores SET prefix = ? WHERE guild = ?", (prefix, guild, ))
-    await db.commit()
+        if len(prefix) > 6:
+            return "", 400
 
-    return "", 200
+        db_commit("UPDATE servidores SET prefix = %s WHERE guild = %s", (prefix, guild, ), db)
 
-  @request_c.route("/api/getGuildInfo")
-  async def get_info():
-    '''
-    '''
-    guild = request.args.get("guild")
-    if not guild: 
-      return "", 400
+        return "", 200
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+    @request_c.route("/api/getGuildInfo")
+    async def get_info():
+        '''
+        '''
+        try:
+            guild = str(request.args.get("guild"))
+        except:
+            return "", 400
 
-    data = await db.execute("SELECT * FROM servidores WHERE guild=?", (guild, ))
-    res = await data.fetchall()
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-    if res: 
-      res = res[0]
+        res = db_fetch("SELECT * FROM servidores WHERE guild=%s", (guild, ), db)
 
-      welcome = str(res['welcome'])
-      cumple = str(res['birthday'])
-      stalk = str(res['stalk'])
-      tipo = str(res['type'])
-      prefix = str(res['prefix'])
+        if len(res) > 0: 
+            res = res[0]
 
-      rols = []
-      channs = []
+            welcome = str(res['welcome'])
+            cumple = str(res['birthday'])
+            stalk = str(res['stalk'])
+            tipo = str(res['type'])
+            prefix = str(res['prefix'])
 
-      bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
-      for x in bot_guild_role:
-          rols.append({"name": x.name,"id": str(x.id)})
+            rols = []
+            channs = []
 
-      bot_guild_channels = objectview(await request_c.ipc_node.request("get_guild_channels", eid=guild))
-      for x in bot_guild_channels:
-          channs.append({"name": x.name,"id": str(x.id)})
+            bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
+            for x in bot_guild_role:
+                rols.append({"name": x.name,"id": str(x.id)})
 
-      bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
+            bot_guild_channels = objectview(await request_c.ipc_node.request("get_guild_channels", eid=guild))
+            for x in bot_guild_channels:
+                channs.append({"name": x.name,"id": str(x.id)})
 
-      return jsonify({"channels": channs, 
-                      "roles": rols,
-                      "welcome": welcome,
-                      "bday": cumple,
-                      "stalk": stalk,
-                      "tipo": tipo,
-                      "prefix": prefix,
-                      "stats": bot_guild_stats})
+            bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
 
-    else: 
-      rols = []
-      channs = []
+            return jsonify({"channels": channs, 
+                            "roles": rols,
+                            "welcome": welcome,
+                            "bday": cumple,
+                            "stalk": stalk,
+                            "tipo": tipo,
+                            "prefix": prefix,
+                            "stats": bot_guild_stats})
 
-      bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
-      for x in bot_guild_role:
-          rols.append({"name": x.name,"id": str(x.id)})
+        else: 
+            rols = []
+            channs = []
 
-      bot_guild_channels = objectview(await request_c.ipc_node.request("get_guild_channels", eid=guild))
-      for x in bot_guild_channels:
-          channs.append({"name": x.name,"id": str(x.id)})
+            bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
+            for x in bot_guild_role:
+                rols.append({"name": x.name,"id": str(x.id)})
 
-      bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
+            bot_guild_channels = objectview(await request_c.ipc_node.request("get_guild_channels", eid=guild))
+            for x in bot_guild_channels:
+                channs.append({"name": x.name,"id": str(x.id)})
 
-      await dc.execute("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type, prefix) VALUES(?,?,?,?,?,?,?,?)", (guild, 0, 0, 0, " ", 0, 0, "!", ))
-      await db.commit()
+            bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
 
-      return jsonify({"channels": channs, 
-                      "roles": rols,
-                      "welcome": 0,
-                      "bday": 0,
-                      "stalk": 0,
-                      "tipo": 0,
-                      "prefix": "!",
-                      "stats": bot_guild_stats})
+            db_commit("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type, prefix) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", (str(guild), 0, 0, 0, " ", 0, 0, "!", ), db)
 
-  @request_c.errorhandler(Unauthorized)
-  async def redirect_unauthorized(e):
-      return redirect("/api/login")
+            return jsonify({"channels": channs, 
+                            "roles": rols,
+                            "welcome": 0,
+                            "bday": 0,
+                            "stalk": 0,
+                            "tipo": 0,
+                            "prefix": "!",
+                            "stats": bot_guild_stats})
 
-  return request_c
+    @request_c.errorhandler(Unauthorized)
+    async def redirect_unauthorized(e):
+        return redirect("/api/login")
+
+    return request_c

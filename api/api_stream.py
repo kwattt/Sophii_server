@@ -1,81 +1,83 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
-
-import aiosqlite
+import psycopg2.extras
 
 from auth import has_access
+from commons import db_fetch, db_commit
 
-
-def stream_bp(discord, db, dc):
-  '''
-  '''
-
-  stream_c = Blueprint("stream_c", __name__)
-
-  @stream_c.route("/api/updateSocial", methods=["POST"])
-  async def updateStreams():
+def stream_bp(discord, db):
     '''
     '''
 
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      props = data["data"]
-    except: 
-      return "", 400
+    stream_c = Blueprint("stream_c", __name__)
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+    @stream_c.route("/api/updateSocial", methods=["POST"])
+    async def updateStreams():
+        '''
+        '''
 
-    tipod = await db.execute("SELECT type FROM servidores WHERE guild=?", (guild, ))
-    tipo =  await tipod.fetchall()
-    tipo = tipo[0][0]
+        data = await request.get_json()
+        try: 
+            guild = str(data['guild'])
+            props = data["data"]
+        except: 
+            return "", 400
 
-    props = props["twitch"]
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-    if tipo == 0 and len(props) > 3:
-      return "", 400 
+        tipo = db_fetch("SELECT type FROM servidores WHERE guild=%s", (guild, ), db)
+        tipo = tipo[0]["type"]
+        
+        if "twitch" in props:
+            props = props["twitch"]
 
-    await dc.execute("DELETE FROM social WHERE guild = ?", (guild,))
+            if tipo == 0 and len(props) > 3:
+                return "", 400 
 
-    for st in props:
-      if len(st["name"]) > 30:
-        await db.rollback()
-        return "", 400
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM social WHERE guild = %s", (guild,))
 
-      await dc.execute('''INSERT INTO 
-      social(guild, name, platform, channel, type, live, last_update)
-      VALUES(?,?,?,?,?,?,?)
-      ''', (guild, st['name'], 'twitch', st['channel'], st['type'],0,0.0,))
+            for st in props:
+                if len(st["name"]) > 30:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
 
-    await db.commit()
+                dc.execute('''INSERT INTO 
+                social(guild, name, platform, channel, type, live, last_update)
+                VALUES(%s,%s,%s,%s,%s,%s,%s)
+                ''', (guild, st['name'], 'twitch', str(st['channel']), st['type'], 0, 0,))
 
-    return "", 200
+            db.commit()
+            dc.close()
 
-  @stream_c.route("/api/streams")
-  #@requires_authorization
-  async def Streams():
-    '''
-      
-    '''
+        return "", 200
 
-    guild = request.args.get("guild")
-    if not guild: 
-      return "", 400
+    @stream_c.route("/api/streams")
+    async def Streams():
+        '''
+        
+        '''
+        try:
+            guild = request.args.get("guild")
+        except:
+            return "", 400
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-    twitchdata = await db.execute("SELECT * FROM social WHERE guild=?", (guild, ))
-    twitchres =  await twitchdata.fetchall()
+        twitchres = db_fetch("SELECT * FROM social WHERE guild=%s", (guild, ), db)
 
-    twitch = []
+        twitch = []
+        youtube = []
+        for x in twitchres:
+            if x["platform"] == "twitch":
+                twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+            if x["platform"] == "youtube":
+                youtube.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+            
+        return jsonify({"twitch": twitch, "youtube": youtube})
 
-    for x in twitchres:
-      if x["platform"] == "twitch":
-        twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
 
-    return jsonify({"twitch": twitch})
-
-
-  return stream_c
+    return stream_c

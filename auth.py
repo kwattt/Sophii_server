@@ -1,6 +1,6 @@
 import os 
 
-async def has_access(discord, guild, dc):
+async def has_access(discord, guild, db):
   if os.environ.get('DISABLE_AUTH') == 'True':
     return True
   else: 
@@ -11,9 +11,11 @@ async def has_access(discord, guild, dc):
 
     user = await discord.fetch_user()
     uid = user.id
-
-    datad = await dc.execute("SELECT * FROM access WHERE id = ? AND guild = ?", (uid, guild,))
-    data = await datad.fetchall()
+    
+    dc = db.cursor()
+    dc.execute("SELECT * FROM access WHERE id = ? AND guild = ?", (uid, guild,))
+    data = dc.fetchone()
+    dc.close()
 
     if not data:
       return False

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import psycopg2.extras
 
 def loadFile(fname):
     with open(fname, 'r', encoding="utf8") as fi:
@@ -21,3 +22,16 @@ def log(stri):
     file = open("info.log", "a")
     file.write("{}: {}".format(str(time.strftime("%H:%M:%S")), stri+"\n"))
     file.close()
+
+def db_commit(insc, tuple, db):
+    cursor = db.cursor()
+    cursor.execute(insc, tuple)
+    db.commit()
+    cursor.close()
+
+def db_fetch(insc, tuple, db):
+    cursor = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+    cursor.execute(insc, tuple)
+    res = cursor.fetchall()
+    cursor.close()
+    return res

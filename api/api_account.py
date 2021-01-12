@@ -1,92 +1,96 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
 import os 
+import psycopg2.extras
 
-def account_bp(discord, db, dc):
-  '''
-  '''
+from commons import db_fetch
 
-  api_account = Blueprint("api_account", __name__)
+def account_bp(discord, db):
+    '''
+    '''
 
-  @api_account.route('/api/updateAccount', methods=["POST"])
-  async def updateAccount():
-    uid = "0"
-    if os.environ.get('DISABLE_AUTH') == 'True':
-      uid = "254672103465418752"
-    else:
-      Value = await discord.authorized
-      if not Value:
-        return "", 401
-      user = await discord.fetch_user()
-      uid = user.id
+    api_account = Blueprint("api_account", __name__)
 
-    data = await request.get_json()
-    try: 
-      props = data["data"]
-    except: 
-      return "", 400
+    @api_account.route('/api/updateAccount', methods=["POST"])
+    async def updateAccount():
+        uid = "0"
+        if os.environ.get('DISABLE_AUTH') == 'True':
+            uid = "254672103465418752"
+        else:
+            Value = await discord.authorized
+            if not Value:
+                return "", 401
+            user = await discord.fetch_user()
+            uid = str(user.id)
 
-    try:
-      month = props["month"]
-      day = props["day"]
-      enabled = props["enabled"]
-    except:
-      return "", 400
+        data = await request.get_json()
+        try: 
+            props = data["data"]
+        except: 
+            return "", 400
 
-    datad = await dc.execute("SELECT * FROM users WHERE id = ?", (uid, ))
-    data = await datad.fetchall()
+        try:
+            month = int(props["month"])
+            day = int(props["day"])
+            enabled = props["enabled"]
+        except:
+            return "", 400
 
-    if enabled:
-      if not data:
-        await dc.execute("INSERT INTO users(id, month, day) VALUES(?,?,?)", (uid, month, day,))
-        await db.commit()
+        dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
 
-      else:
-        await dc.execute("UPDATE users SET month = ?, day = ? WHERE id = ?", (month, day, uid, ))
-        await db.commit()
+        dc.execute("SELECT * FROM users WHERE id = %s", (uid, ))
+        data = dc.fetchall()
 
-    else: 
-      if data:
-        await dc.execute("DELETE FROM users WHERE id = ?", (uid, ))
-        await db.commit()
-      else: 
+        if enabled:
+            if not data:
+                dc.execute("INSERT INTO users(id, month, day) VALUES(%s,%s,%s)", (uid, month, day,))
+                db.commit()
+
+            else:
+                dc.execute("UPDATE users SET month = %s, day = %s WHERE id = %s", (month, day, uid, ))
+                db.commit()
+
+        else: 
+            if data:
+                dc.execute("DELETE FROM users WHERE id = %s?", (uid, ))
+                db.commit()
+
+        dc.close()
         return ""
 
-    return ""
+    @api_account.route('/api/account')
+    async def account():
+        uid = "0"
 
-  @api_account.route('/api/account')
-  async def account():
-    uid = "0"
-    if os.environ.get('DISABLE_AUTH') == 'True':
-      uid = "254672103465418752"
-      avatar = "https://cdn.discordapp.com/avatars/254672103465418752/27f79b3bb7aa47f7d6e8c79521aff41f.png"
-      name = "kv"
-    else:
-      Value = await discord.authorized
-      if not Value:
-        return "", 401
-      user = await discord.fetch_user()
-      uid = user.id
-      avatar = user.avatar_url
-      name = str(user)
+        if os.environ.get('DISABLE_AUTH') == 'True':
+            uid = "254672103465418752"
+            avatar = "https://cdn.discordapp.com/avatars/254672103465418752/27f79b3bb7aa47f7d6e8c79521aff41f.png"
+            name = "kv"
+        else:
+            Value = await discord.authorized
+            if not Value:
+                return "", 401
+            user = await discord.fetch_user()
+            uid = str(user.id)
+            avatar = user.avatar_url
+            name = str(user)
 
-    datad = await dc.execute("SELECT * FROM users WHERE id = ?", (uid, ))
-    data = await datad.fetchall()
+        data = db_fetch("SELECT * FROM users WHERE id = ?", (uid, ), db)
 
-    if data:
-      data = data[0]
-      return jsonify({
-        "enabled": 1, 
-        "day": data["day"], 
-        "month" : data["month"],
-        "avatar": avatar,
-        "name": name})
-    else:
-      return jsonify({
-        "enabled": 0, 
-        "day": 1, 
-        "month" : 1,
-        "avatar": avatar,
-        "name": name})
+        if data:
+            data = data[0]
+            return jsonify({
+                "enabled": 1, 
+                "day": data["day"], 
+                "month" : data["month"],
+                "avatar": avatar,
+                "name": name})
+        else:
+            return jsonify({
+                "enabled": 0, 
+                "day": 1, 
+                "month" : 1,
+                "avatar": avatar,
+                "name": name})
 
-  return api_account
+    return api_account

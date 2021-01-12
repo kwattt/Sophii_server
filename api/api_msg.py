@@ -1,138 +1,150 @@
 from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
-
-import aiosqlite
+import psycopg2.extras
 
 from auth import has_access
+from commons import db_fetch, db_commit
 
+def msg_bp(discord, db):
 
-def msg_bp(discord, db, dc):
+    msg_c = Blueprint("msg_c", __name__)
 
-  msg_c = Blueprint("msg_c", __name__)
+    @msg_c.route("/api/updateMsg", methods=["POST"])
+    async def updateMensajes():
 
-  @msg_c.route("/api/updateMsg", methods=["POST"])
-  async def updateMensajes():
+        data = await request.get_json()
+        try: 
+            guild = str(data['guild'])
+            props = data["data"]
+        except: 
+            return "", 400
 
-    data = await request.get_json()
-    try: 
-      guild = int(data['guild'])
-      props = data["data"]
-    except: 
-      return "", 400
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        if "channel" in props:
+            channel = str(props["channel"])
+            if(len(channel) > 25):
+                return "", 400
 
-    if "channel" in props:
-      channel = props["channel"]
-      if(len(channel) > 25):
-        return "", 400
+            db_commit("UPDATE servidores SET welcome = %s WHERE guild = %s", (channel, guild, ), db)
 
-      await dc.execute("UPDATE servidores SET welcome = ? WHERE guild = ?", (channel, guild, ))
-      await db.commit()
+        if "join" in props:
+            join = props["join"]
+            ent = join.replace("\n", "").split(";")
 
-    if "join" in props:
-      join = props["join"]
-      ent = join.replace("\n", "").split(";")
+            if len(join) > 1500:
+                return "", 400
 
-      if len(join) > 1500:
-        return "", 400
+            for msg in ent:
+                try:
+                    msg.format(123)
+                except (IndexError, KeyError, ValueError):
+                    return "", 400
+            
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE from WELCOME WHERE guild=%s AND tipo=0", (guild,))
+            
+            for msg in ent:
+                if msg:
+                    dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(%s,%s,%s)", (guild,0,msg.lstrip(),))
+            
+            db.commit()
+            dc.close()
 
-      for msg in ent:
-          try:
-              msg.format(123)
-          except (IndexError, KeyError, ValueError):
-              return "", 400
+        if "leave" in props:
+            leave = props["leave"]
 
-      await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=0", (guild,))
-    
-      for msg in ent:
-          if msg:
-              await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,0,msg.lstrip(),))
-      await db.commit()
+            if len(leave) > 1500:
+                return "", 400
 
-    if "leave" in props:
-      leave = props["leave"]
+            sal = leave.replace("\n", "").split(";")
 
-      if len(leave) > 1500:
-        return "", 400
+            for msg in sal:
+                try:
+                    msg.format(123)
+                except (IndexError, KeyError, ValueError):
+                    return "", 400
 
-      sal = leave.replace("\n", "").split(";")
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE from WELCOME WHERE guild=%s AND tipo=1", (guild,))
 
-      for msg in sal:
-          try:
-              msg.format(123)
-          except (IndexError, KeyError, ValueError):
-              return "", 400
+            for msg in sal:
+                if msg:
+                    dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(%s,%s,%s)", (guild,1,msg.lstrip(),))
+            
+            db.commit()
+            dc.close()
 
-      await dc.execute("DELETE from WELCOME WHERE guild=? AND tipo=1", (guild,))
+        if "oraculo" in props:
+            oraculo = props["oraculo"]
 
-      for msg in sal:
-          if msg:
-              await dc.execute("INSERT INTO welcome(guild,tipo,msg) VALUES(?,?,?)", (guild,1,msg.lstrip(),))
-      await db.commit()
+            if len(oraculo) > 1500:
+                return "", 400
 
-    if "oraculo" in props:
-      oraculo = props["oraculo"]
+            oraculo = oraculo.replace("\n", "").split(";")
 
-      if len(oraculo) > 1500:
-        return "", 400
+            for msg in oraculo:
+                try:
+                    msg.format(123)
+                except (IndexError, KeyError, ValueError):
+                    return "", 400
 
-      oraculo = oraculo.replace("\n", "").split(";")
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE from oraculo WHERE guild=%s", (guild,))
 
-      for msg in oraculo:
-          try:
-              msg.format(123)
-          except (IndexError, KeyError, ValueError):
-              return "", 400
+            for msg in oraculo:
+                if msg:
+                    dc.execute("INSERT INTO oraculo(guild,msg) VALUES(%s,%s)", (guild,msg.lstrip(),))
+            
+            db.commit() 
+            dc.close()
 
-      await dc.execute("DELETE from oraculo WHERE guild=?", (guild,))
+        return "", 200
 
-      for msg in oraculo:
-          if msg:
-              await dc.execute("INSERT INTO oraculo(guild,msg) VALUES(?,?)", (guild,msg.lstrip(),))
-      await db.commit() 
+    @msg_c.route("/api/msg")
+    async def Mensajes():
+        try:
+            guild = str(request.args.get("guild"))
+        except:
+            return "", 400
 
-    return "", 200
+        if not (await has_access(discord, guild, db)):
+            return "", 401
 
-  @msg_c.route("/api/msg")
-  async def Mensajes():
-    guild = request.args.get("guild")
-    if not guild: 
-      return "", 400
+        dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+        dc.execute("SELECT welcome FROM servidores WHERE guild=%s", (guild, ))
+        data = dc.fetchall()
 
-    if not (await has_access(discord, guild, dc)):
-      return "", 401
+        welcome = str(data[0]["welcome"])
 
-    datad = await db.execute("SELECT welcome FROM servidores WHERE guild=?", (guild, ))
-    data = await datad.fetchall()
-    welcome = str(data[0][0])
+        dc.execute("SELECT * FROM oraculo WHERE guild=%s", (guild, ))
+        extraD = dc.fetchall()
+        
+        temp = []
+        for msg in extraD:
+            if msg:
+                temp.append(msg["msg"])
+        oraculo = ";\n\n".join(temp)
 
-    extraE = await db.execute("SELECT * FROM oraculo WHERE guild=?", (guild, ))
-    extraD =  await extraE.fetchall()
-    temp = []
+        dc.execute("SELECT * FROM welcome WHERE guild=%s", (guild, ))
+        welcomeres = dc.fetchall()
 
-    for msg in extraD:
-        if msg:
-            temp.append(msg["msg"])
-    oraculo = ";\n\n".join(temp)
+        ent = []
+        sal = []
+        for msg in welcomeres:
+            if msg["tipo"] == 0:
+                ent.append(msg["msg"])
+            else:
+                sal.append(msg["msg"])
+        ent = ";\n\n".join(ent)
+        sal = ";\n\n".join(sal)
 
-    welcomemsg = await db.execute("SELECT * FROM welcome WHERE guild=?", (guild, ))
-    welcomeres =  await welcomemsg.fetchall()
+        dc.close()
 
-    ent = []
-    sal = []
-    for msg in welcomeres:
-        if msg["tipo"] == 0:
-            ent.append(msg["msg"])
-        else:
-            sal.append(msg["msg"])
-    ent = ";\n\n".join(ent)
-    sal = ";\n\n".join(sal)
+        return jsonify({"channel":welcome, 
+                        "oraculo": oraculo, 
+                        "join": ent, 
+                        "leave": sal})
 
-    return jsonify({"channel":welcome, 
-                    "oraculo": oraculo, 
-                    "join": ent, 
-                    "leave": sal})
-
-  return msg_c
+    return msg_c
