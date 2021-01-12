@@ -52,7 +52,7 @@ def account_bp(discord, db):
 
         else: 
             if data:
-                dc.execute("DELETE FROM users WHERE id = %s?", (uid, ))
+                dc.execute("DELETE FROM users WHERE id = %s", (uid, ))
                 db.commit()
 
         dc.close()
@@ -75,7 +75,7 @@ def account_bp(discord, db):
             avatar = user.avatar_url
             name = str(user)
 
-        data = db_fetch("SELECT * FROM users WHERE id = ?", (uid, ), db)
+        data = db_fetch("SELECT * FROM users WHERE id = %s", (uid, ), db)
 
         if data:
             data = data[0]
