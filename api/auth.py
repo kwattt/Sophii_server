@@ -14,7 +14,7 @@ async def has_access(discord, guild, db):
     uid = user.id
     
     dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-    dc.execute("SELECT * FROM access WHERE id = ? AND guild = ?", (uid, guild,))
+    dc.execute("SELECT * FROM access WHERE id = %s AND guild = %s", (str(uid), str(guild),))
     data = dc.fetchone()
     dc.close()
 
