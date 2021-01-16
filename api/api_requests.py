@@ -5,7 +5,7 @@ import os
 import random 
 import psycopg2.extras
 
-from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError, InvalidGrantError
 
 from auth import has_access
 
@@ -53,10 +53,8 @@ def request_bp(discord, db):
 
                 bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
 
-            except TokenExpiredError: 
-                discord.revoke() # regeneramos el token.
-                await discord.callback()
-                return redirect("/panel")
+            except (InvalidGrantError, TokenExpiredError):
+                return redirect("/api/login")
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dc.execute("DELETE FROM access WHERE id = %s", (uid, ))
