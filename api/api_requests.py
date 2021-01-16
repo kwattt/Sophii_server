@@ -54,6 +54,7 @@ def request_bp(discord, db):
                 bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
 
             except (InvalidGrantError, TokenExpiredError):
+                discord.revoke()
                 return redirect("/api/login")
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
