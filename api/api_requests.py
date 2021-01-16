@@ -148,7 +148,7 @@ def request_bp(discord, db):
 
             bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
 
-            db_commit("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type, prefix) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)", (str(guild), 0, 0, 0, " ", 0, 0, "!", ), db)
+            db_commit("INSERT INTO servidores(guild, welcome, birthday, stalk, bdaymsg, bdayutc, type, prefix, levels) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,0)", (str(guild), 0, 0, 0, " ", 0, 0, "!", ), db)
 
             return jsonify({"channels": channs, 
                             "roles": rols,
