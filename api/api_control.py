@@ -31,7 +31,19 @@ def api_bp(discord):
         if os.environ.get('DISABLE_AUTH') == 'True':
             Value = True
         else:
-            Value = await discord.authorized
+            try: 
+                Value = await discord.authorized
+                if not Value: 
+                    return jsonify({"Auth": False})  
+
+                user = await discord.fetch_user()
+                uid = str(user.id)
+
+            except (InvalidGrantError, TokenExpiredError):
+                discord.revoke()
+                return jsonify({"Auth": False})
+
+
 
         return jsonify({"Auth": Value})
 
