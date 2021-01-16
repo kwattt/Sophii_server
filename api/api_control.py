@@ -2,6 +2,9 @@ from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized, AccessDenied
 import os
 
+
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError, InvalidGrantError
+
 def api_bp(discord):
     '''
         Esta función contiene los endpoints de login, autorización y revoke.
