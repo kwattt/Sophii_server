@@ -5,6 +5,8 @@ import os
 import random 
 import psycopg2.extras
 
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
+
 from auth import has_access
 
 from commons import loadFile, objectview, db_fetch, db_commit
@@ -40,14 +42,21 @@ def request_bp(discord, db):
             for c in bot_guilds:
                 guildss.append({"id": str(c.id), "name": c.name})
         else:
-            Value = await discord.authorized
-            if not Value: 
-                return False  
 
-            user = await discord.fetch_user()
-            uid = str(user.id)
+            try: 
+                Value = await discord.authorized
+                if not Value: 
+                    return False  
 
-            bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
+                user = await discord.fetch_user()
+                uid = str(user.id)
+
+                bot_guilds = objectview(await request_c.ipc_node.request("get_guilds", user=str(uid)))
+
+            except TokenExpiredError: 
+                discord.revoke() # regeneramos el token.
+                await discord.callback()
+                return redirect("/panel")
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dc.execute("DELETE FROM access WHERE id = %s", (uid, ))
@@ -56,7 +65,6 @@ def request_bp(discord, db):
             for c in bot_guilds:
                 guildss.append({"id": str(c.id), "name": c.name})
                 dc.execute("INSERT INTO access(id, guild) VALUES(%s,%s)", (uid, c.id,))
-
 
             db.commit()
             dc.close()
