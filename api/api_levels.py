@@ -27,9 +27,10 @@ def levels_bp(discord, db):
         levelsres = db_fetch("SELECT levels FROM servidores WHERE guild=%s", (guild, ), db)
         
         channels = db_fetch("SELECT * FROM levelchannel WHERE guild=%s", (guild, ), db)
+
         channelres = []
         for x in channels:
-            channelres.append(channels["channel"])
+            channelres.append(x["channel"])
 
         return jsonify({"enabled": levelsres[0]["levels"], "channels": channelres})
 
