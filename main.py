@@ -65,6 +65,13 @@ app.register_blueprint(account_bp(discord_module, dbase))
 from api.api_levels import levels_bp
 app.register_blueprint(levels_bp(discord_module, dbase))
 
+@app.errorhandler(404)
+async def react_router_handle(e):
+    '''
+    Este error handler enviará cualquier respuesta 404 a index.html, de esta manera el react-router se encargará 
+    de renderizar los componentes necesarios. 
+    ''' 
+    return await send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
     if os.environ.get('DEVAREA') == 'True':
