@@ -41,7 +41,7 @@ def levels_bp(discord, db):
 
 
     @levels_c.route("/api/updateLevels", methods=["POST"])
-    async def updateStreams():
+    async def updateLevels():
         '''
         '''
 
@@ -86,17 +86,23 @@ def levels_bp(discord, db):
                     price = int(ch["price"])
                     tipo = int(ch["type"])
                     role = str(ch["role"])
-                    channel = str(ch["channel"])
+                    channel = str(ch["channel"]) 
 
                 except:
                     db.rollback()
                     dc.close()
                     return "", 400
 
-                dc.execute('''INSERT INTO 
-                shop(guild, name, price, type, role, channel)
-                VALUES(%s,%s,%s,%s,%s,%s)
-                ''', (guild, name, price, tipo, role, channel))
+                try:
+                    dc.execute('''INSERT INTO 
+                    shop(guild, name, price, type, role, channel)
+                    VALUES(%s,%s,%s,%s,%s,%s)
+                    ''', (guild, name, price, tipo, role, channel))
+                except:
+                    print(f"{guild}, {name}, {price}, {tipo}, {role}, {channel}")
+                    db.rollback()
+                    dc.close()
+                    return "", 400
 
             db.commit()
             dc.close()
