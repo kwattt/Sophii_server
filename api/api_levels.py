@@ -32,7 +32,12 @@ def levels_bp(discord, db):
         for x in channels:
             channelres.append(x["channel"])
 
-        return jsonify({"enabled": levelsres[0]["levels"], "channels": channelres})
+        store = db_fetch("SELECT * FROM shop WHERE guild=%s", (guild, ), db)
+        storeitems = []
+        for x in store:
+            storeitems.append({"name": x["name"], "channel": x["channel"], "role": x["role"], "type": str(x["type"]), "price": x["price"]})
+
+        return jsonify({"enabled": levelsres[0]["levels"], "channels": channelres, "shop": storeitems})
 
 
     @levels_c.route("/api/updateLevels", methods=["POST"])
@@ -50,21 +55,51 @@ def levels_bp(discord, db):
         if not (await has_access(discord, guild, db)):
             return "", 401
 
-        channels = props["channels"]
+        if "channels" in props:
 
-        dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-        dc.execute("DELETE FROM levelchannel WHERE guild = %s", (guild,))
+            channels = props["channels"]
 
-        for ch in channels:
-            dc.execute('''INSERT INTO 
-            levelchannel(guild, channel)
-            VALUES(%s,%s)
-            ''', (guild, ch,))
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM levelchannel WHERE guild = %s", (guild,))
 
-        db.commit()
-        dc.close()
+            for ch in channels:
+                dc.execute('''INSERT INTO 
+                levelchannel(guild, channel)
+                VALUES(%s,%s)
+                ''', (guild, ch,))
 
-        db_commit("UPDATE servidores SET levels = %s WHERE guild = %s", (int(props["enabled"]), guild, ), db)
+            db.commit()
+            dc.close()
+
+            db_commit("UPDATE servidores SET levels = %s WHERE guild = %s", (int(props["enabled"]), guild, ), db)
+
+        if "shop" in props:
+            shop = props["shop"]
+
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM shop WHERE guild = %s", (guild,))
+
+            for ch in shop:
+
+                try: 
+                    name = str(ch["name"])
+                    price = int(ch["price"])
+                    tipo = int(ch["type"])
+                    role = str(ch["role"])
+                    channel = str(ch["channel"])
+
+                except:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                dc.execute('''INSERT INTO 
+                shop(guild, name, price, type, role, channel)
+                VALUES(%s,%s,%s,%s,%s,%s)
+                ''', (guild, name, price, tipo, role, channel))
+
+            db.commit()
+            dc.close()
 
         return "", 200
 
