@@ -2,17 +2,19 @@ from quart import Blueprint, redirect, jsonify, request, url_for
 from quart_discord import requires_authorization, Unauthorized
 import psycopg2.extras
 
+from datetime import datetime
+
 from auth import has_access
 from commons import db_fetch, db_commit
 
-def stream_bp(discord, db):
+def social_bp(discord, db):
     '''
     '''
 
-    stream_c = Blueprint("stream_c", __name__)
+    social_c = Blueprint("social_c", __name__)
 
-    @stream_c.route("/api/updateSocial", methods=["POST"])
-    async def updateStreams():
+    @social_c.route("/api/updateSocial", methods=["POST"])
+    async def updateSocial():
         '''
         '''
 
@@ -29,6 +31,29 @@ def stream_bp(discord, db):
         tipo = db_fetch("SELECT type FROM servidores WHERE guild=%s", (guild, ), db)
         tipo = tipo[0]["type"]
         
+        if "facebook" in props:
+            props = props["facebook"]
+
+            if tipo == 0 and len(props) > 3:
+                return "", 400 
+
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'facebook'", (guild,))
+
+            for st in props:
+                if len(st["name"]) > 30:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                dc.execute('''INSERT INTO 
+                social(guild, name, platform, channel, type, live, last_update)
+                VALUES(%s,%s,%s,%s,%s,%s,%s)
+                ''', (guild, st['name'], 'facebook', str(st['channel']), st['type'], 0, str(0),))
+
+            db.commit()
+            dc.close()
+
         if "twitch" in props:
             props = props["twitch"]
 
@@ -36,7 +61,7 @@ def stream_bp(discord, db):
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            dc.execute("DELETE FROM social WHERE guild = %s", (guild,))
+            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'twitch'", (guild,))
 
             for st in props:
                 if len(st["name"]) > 30:
@@ -54,8 +79,8 @@ def stream_bp(discord, db):
 
         return "", 200
 
-    @stream_c.route("/api/streams")
-    async def Streams():
+    @social_c.route("/api/social")
+    async def Social():
         '''
         
         '''
@@ -71,13 +96,16 @@ def stream_bp(discord, db):
 
         twitch = []
         youtube = []
+        facebook = []
         for x in twitchres:
             if x["platform"] == "twitch":
                 twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             if x["platform"] == "youtube":
                 youtube.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+            if x["platform"] == "facebook":
+                facebook.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             
-        return jsonify({"twitch": twitch, "youtube": youtube})
+        return jsonify({"twitch": twitch, "youtube": youtube, "facebook": facebook})
 
 
-    return stream_c
+    return social_c

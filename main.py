@@ -47,8 +47,8 @@ asyncio.run(set_db())
 from api.api_control import api_bp
 app.register_blueprint(api_bp(discord_module))
 
-from api.api_stream import stream_bp
-app.register_blueprint(stream_bp(discord_module, dbase))
+from api.api_social import social_bp
+app.register_blueprint(social_bp(discord_module, dbase))
 
 from api.api_msg import msg_bp
 app.register_blueprint(msg_bp(discord_module, dbase))
