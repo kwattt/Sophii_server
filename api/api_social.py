@@ -30,11 +30,34 @@ def social_bp(discord, db):
 
         tipo = db_fetch("SELECT type FROM servidores WHERE guild=%s", (guild, ), db)
         tipo = tipo[0]["type"]
-        
+
+        if "twitter" in props:
+            props = props["twitter"]
+            if tipo == 0 and len(props) > 5:
+                return "", 400 
+
+            dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'twitter'", (guild,))
+
+            for st in props:
+                if len(st["name"]) > 30:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                dc.execute('''INSERT INTO 
+                social(guild, name, platform, channel, type, live, last_update)
+                VALUES(%s,%s,%s,%s,%s,%s,%s)
+                ''', (guild, st['name'], 'twitter', str(st['channel']), st['type'], 0, str(0),))
+
+            db.commit()
+            dc.close()
+
+
         if "facebook" in props:
             props = props["facebook"]
 
-            if tipo == 0 and len(props) > 3:
+            if tipo == 0 and len(props) > 5:
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -57,7 +80,7 @@ def social_bp(discord, db):
         if "twitch" in props:
             props = props["twitch"]
 
-            if tipo == 0 and len(props) > 3:
+            if tipo == 0 and len(props) > 4:
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -97,6 +120,7 @@ def social_bp(discord, db):
         twitch = []
         youtube = []
         facebook = []
+        twitter = []
         for x in twitchres:
             if x["platform"] == "twitch":
                 twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
@@ -104,8 +128,10 @@ def social_bp(discord, db):
                 youtube.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             if x["platform"] == "facebook":
                 facebook.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+            if x["platform"] == "twitter":
+                twitter.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             
-        return jsonify({"twitch": twitch, "youtube": youtube, "facebook": facebook})
+        return jsonify({"twitter": twitter, "twitch": twitch, "youtube": youtube, "facebook": facebook})
 
 
     return social_c
