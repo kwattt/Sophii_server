@@ -64,7 +64,7 @@ def social_bp(discord, db):
             dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'facebook'", (guild,))
 
             for st in props:
-                if len(st["name"]) > 30:
+                if len(st["name"]) > 200:
                     db.rollback()
                     dc.close()
                     return "", 400
