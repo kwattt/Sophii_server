@@ -38,10 +38,10 @@ def extra_bp(discord, db):
 
             db_commit("UPDATE servidores SET birthday = %s, bdaymsg = %s, bdayutc = %s WHERE guild = %s", (bday, bdaymsg, bdayutc, guild, ), db)
 
-        if "role" in props:
+        if "stalk" in props:
 
             try:
-                stalk = str(props["stalk"])
+                stalk = int(props["stalk"])
                 role = str(props["role"])
             except:
                 return "", 400
