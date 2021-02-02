@@ -95,7 +95,6 @@ def extra_bp(discord, db):
         if not (await has_access(discord, guild, db)):
             return "", 401
 
-
         data = db_fetch("SELECT stalk, bdaymsg, birthday, bdayutc FROM servidores WHERE guild=%s", (guild, ), db)
 
         if not data:
