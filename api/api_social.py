@@ -54,7 +54,7 @@ def social_bp(discord, db):
                 return None 
 
     @social_c.route("/api/verifyChannel", methods=["POST"])
-    async def verifyChannel():
+    async def verifyYoutubeChannel():
         data = await request.get_json()
         try: 
             guild = str(data['guild'])
@@ -70,8 +70,7 @@ def social_bp(discord, db):
             else:
                 return jsonify({"channelName": channelName})
         else:
-            return "", 400
-
+            return "", 400 
 
     @social_c.route("/api/updateSocial", methods=["POST"])
     async def updateSocial():
@@ -79,10 +78,10 @@ def social_bp(discord, db):
         '''
 
         data = await request.get_json()
-        try: 
+        try:
             guild = str(data['guild'])
             props = data["data"]
-        except: 
+        except:
             return "", 400
 
         if not (await has_access(discord, guild, db)):
@@ -97,18 +96,41 @@ def social_bp(discord, db):
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'youtube'", (guild,))
+            current_platform = db_fetch("SELECT id FROM social WHERE guild = %s AND platform = 'youtube'", (guild,) ,db) 
+            ids = [int(x["id"]) for x in current_platform]
 
-            for st in props:
-                if len(st["name"]) > 200 or len(st["channel_name"]) > 200 :
+            for current in props:
+                try:
+                    name = str(current["name"])
+                    cid = int(current["id"])
+                    channel = str(current["channel"])
+                    ctype = int(current["type"])
+                    channel_name = str(current["channel_name"])
+                except:
                     db.rollback()
                     dc.close()
                     return "", 400
 
-                dc.execute('''INSERT INTO 
-                social(guild, platform, channel, name, last_update, live, type, real_name)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
-                ''', (guild, "youtube", str(st["channel"]), str(st["name"]), "0", 0, int(st["type"]), str(st["channel_name"])))
+                if len(name) > 200 or len(channel_name) > 200 :
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                if cid == -1:
+                    dc.execute('''
+                    INSERT INTO 
+                    social(guild, platform, channel, name, last_update, live, type, real_name)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+                    ''',
+                    (guild, "youtube", channel, name, "0", 0, ctype, channel_name,))
+                elif cid in ids:
+                    db_commit("UPDATE social SET channel = %s, name = %s, type = %s, real_name = %s WHERE id = %s AND guild = %s", (channel, name, ctype, channel_name, cid, guild,), db)
+
+                if cid != -1:
+                    ids.remove(cid)
+
+            for cid in ids:
+                dc.execute("DELETE FROM social WHERE id = %s AND guild = %s", (cid, guild, ))
 
             db.commit()
             dc.close()
@@ -119,18 +141,40 @@ def social_bp(discord, db):
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'twitter'", (guild,))
+            current_platform = db_fetch("SELECT id FROM social WHERE guild = %s AND platform = 'twitter'", (guild,) ,db) 
+            ids = [int(x["id"]) for x in current_platform]
 
-            for st in props:
-                if len(st["name"]) > 30:
+            for current in props:
+                try:
+                    name = str(current["name"])
+                    cid = int(current["id"])
+                    channel = str(current["channel"])
+                    ctype = int(current["type"])
+                except:
                     db.rollback()
                     dc.close()
                     return "", 400
 
-                dc.execute('''INSERT INTO 
-                social(guild, name, platform, channel, type, live, last_update)
-                VALUES(%s,%s,%s,%s,%s,%s,%s)
-                ''', (guild, st['name'], 'twitter', str(st['channel']), st['type'], 0, str(0),))
+                if len(name) > 200:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                if cid == -1:
+                    dc.execute('''
+                    INSERT INTO 
+                    social(guild, name, platform, channel, type, live, last_update)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s)
+                    ''',
+                    (guild, name, "twitter", channel, ctype, 0, "0",))
+                elif cid in ids:
+                    db_commit("UPDATE social SET channel = %s, name = %s, type = %s WHERE id = %s AND guild = %s", (channel, name, ctype, cid, guild,), db)
+
+                if cid != -1:
+                    ids.remove(cid)
+
+            for cid in ids:
+                dc.execute("DELETE FROM social WHERE id = %s AND guild = %s", (cid, guild, ))
 
             db.commit()
             dc.close()
@@ -142,18 +186,41 @@ def social_bp(discord, db):
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'facebook'", (guild,))
+            current_platform = db_fetch("SELECT id FROM social WHERE guild = %s AND platform = 'facebook'", (guild,) ,db) 
 
-            for st in props:
-                if len(st["name"]) > 200:
+            ids = [int(x["id"]) for x in current_platform]
+
+            for current in props:
+                try:
+                    name = str(current["name"])
+                    cid = int(current["id"])
+                    channel = str(current["channel"])
+                    ctype = int(current["type"])
+                except:
                     db.rollback()
                     dc.close()
                     return "", 400
 
-                dc.execute('''INSERT INTO 
-                social(guild, name, platform, channel, type, live, last_update)
-                VALUES(%s,%s,%s,%s,%s,%s,%s)
-                ''', (guild, st['name'], 'facebook', str(st['channel']), st['type'], 0, str(0),))
+                if len(name) > 200:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                if cid == -1:
+                    dc.execute('''
+                    INSERT INTO 
+                    social(guild, name, platform, channel, type, live, last_update)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s)
+                    ''',
+                    (guild, name, "facebook", channel, ctype, 0, "0",))
+                elif cid in ids:
+                    db_commit("UPDATE social SET channel = %s, name = %s, type = %s WHERE id = %s AND guild = %s", (channel, name, ctype, cid, guild,), db)
+
+                if cid != -1:
+                    ids.remove(cid)
+
+            for cid in ids:
+                dc.execute("DELETE FROM social WHERE id = %s AND guild = %s", (cid, guild, ))
 
             db.commit()
             dc.close()
@@ -165,18 +232,41 @@ def social_bp(discord, db):
                 return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            dc.execute("DELETE FROM social WHERE guild = %s AND platform = 'twitch'", (guild,))
+            current_platform = db_fetch("SELECT id FROM social WHERE guild = %s AND platform = 'twitch'", (guild,) ,db) 
 
-            for st in props:
-                if len(st["name"]) > 30:
+            ids = [int(x["id"]) for x in current_platform]
+
+            for current in props:
+                try:
+                    name = str(current["name"])
+                    cid = int(current["id"])
+                    channel = str(current["channel"])
+                    ctype = int(current["type"])
+                except:
                     db.rollback()
                     dc.close()
                     return "", 400
 
-                dc.execute('''INSERT INTO 
-                social(guild, name, platform, channel, type, live, last_update)
-                VALUES(%s,%s,%s,%s,%s,%s,%s)
-                ''', (guild, st['name'], 'twitch', str(st['channel']), st['type'], 0, 0,))
+                if len(name) > 200:
+                    db.rollback()
+                    dc.close()
+                    return "", 400
+
+                if cid == -1:
+                    dc.execute('''
+                    INSERT INTO 
+                    social(guild, name, platform, channel, type, live, last_update)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s)
+                    ''',
+                    (guild, name, "twitch", channel, ctype, 0, "0",))
+                elif cid in ids:
+                    db_commit("UPDATE social SET channel = %s, name = %s, type = %s WHERE id = %s AND guild = %s", (channel, name, ctype, cid, guild,), db)
+
+                if cid != -1:
+                    ids.remove(cid)
+
+            for cid in ids:
+                dc.execute("DELETE FROM social WHERE id = %s AND guild = %s", (cid, guild, ))
 
             db.commit()
             dc.close()
@@ -204,14 +294,13 @@ def social_bp(discord, db):
         twitter = []
         for x in twitchres:
             if x["platform"] == "twitch":
-                twitch.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+                twitch.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             if x["platform"] == "youtube":
-                youtube.append({"name": x["name"], "channel_name": x["real_name"], "channel": str(x["channel"]),"type": str(x["type"])}) 
+                youtube.append({"id": x["id"], "name": x["name"], "channel_name": x["real_name"], "channel": str(x["channel"]),"type": str(x["type"])}) 
             if x["platform"] == "facebook":
-                facebook.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+                facebook.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
             if x["platform"] == "twitter":
-                twitter.append({"name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
-            
+                twitter.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
         return jsonify({"twitter": twitter, "twitch": twitch, "youtube": youtube, "facebook": facebook})
 
 
