@@ -121,6 +121,7 @@ def request_bp(discord, db):
 
             rols = []
             channs = []
+            channs_voice = []
 
             bot_guild_role = objectview(await request_c.ipc_node.request("get_guild_roles", eid=guild))
             for x in bot_guild_role:
@@ -130,6 +131,11 @@ def request_bp(discord, db):
             for x in bot_guild_channels:
                 channs.append({"name": x.name,"id": str(x.id)})
 
+            bot_guild_channels_voice = objectview(await request_c.ipc_node.request("get_guild_channels_voice", eid=guild))
+            for x in bot_guild_channels_voice:
+                channs_voice.append({"name": x.name,"id": str(x.id)})
+
+
             bot_guild_stats = await request_c.ipc_node.request("get_guild_stats", eid=guild)
 
             return jsonify({"channels": channs, 
@@ -137,6 +143,7 @@ def request_bp(discord, db):
                             "welcome": welcome,
                             "bday": cumple,
                             "stalk": stalk,
+                            "voices": channs_voice,
                             "tipo": tipo,
                             "prefix": prefix,
                             "stats": bot_guild_stats})

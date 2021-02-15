@@ -56,6 +56,9 @@ app.register_blueprint(msg_bp(discord_module, dbase))
 from api.api_extra import extra_bp
 app.register_blueprint(extra_bp(discord_module, dbase))
 
+from api.api_extra2 import extra2_bp
+app.register_blueprint(extra2_bp(discord_module, dbase))
+
 from api.api_requests import request_bp
 app.register_blueprint(request_bp(discord_module, dbase))
 
