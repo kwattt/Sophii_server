@@ -116,7 +116,7 @@ def request_bp(discord, db):
             welcome = str(res['welcome'])
             cumple = str(res['birthday'])
             stalk = str(res['stalk'])
-            tipo = str(res['type'])
+            tipo = int(res['type'])
             prefix = str(res['prefix'])
 
             rols = []

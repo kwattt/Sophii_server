@@ -64,7 +64,7 @@ def account_bp(discord, db):
 
         if os.environ.get('DISABLE_AUTH') == 'True':
             uid = "254672103465418752"
-            avatar = "https://cdn.discordapp.com/avatars/254672103465418752/27f79b3bb7aa47f7d6e8c79521aff41f.png"
+            avatar = "https://cdn.discordapp.com/avatars/254672103465418752/774a470ec9ebde469d5c47c321b6a5e7.png"
             name = "kv"
         else:
             Value = await discord.authorized
