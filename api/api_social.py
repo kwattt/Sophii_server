@@ -62,6 +62,9 @@ def social_bp(discord, db):
         except: 
             return "", 400
 
+        if not (await has_access(discord, guild, db)):
+            return "", 401
+
         if "channelId" in props:
             channelName, __ = await getChannelUploadPlaylistAndName(props["channelId"])
 
@@ -91,7 +94,11 @@ def social_bp(discord, db):
         tipo = tipo[0]["type"]
 
         if "youtube" in props:
-            props = props["youtube"]
+            try:
+                props = list(props["youtube"])
+            except:
+                return "", 400
+            
             if tipo == 0 and len(props) > 3:
                 return "", 400 
 
@@ -136,7 +143,11 @@ def social_bp(discord, db):
             dc.close()
 
         if "twitter" in props:
-            props = props["twitter"]
+            try:
+                props = list(props["twitter"])
+            except:
+                return "", 400
+
             if tipo == 0 and len(props) > 5:
                 return "", 400 
 
@@ -180,7 +191,10 @@ def social_bp(discord, db):
             dc.close()
 
         if "facebook" in props:
-            props = props["facebook"]
+            try:
+                props = list(props["facebook"])
+            except:
+                return "", 400
 
             if tipo == 0 and len(props) > 5:
                 return "", 400 
@@ -226,7 +240,11 @@ def social_bp(discord, db):
             dc.close()
 
         if "twitch" in props:
-            props = props["twitch"]
+
+            try:
+                props = list(props["twitch"])
+            except:
+                return "", 400
 
             if tipo == 0 and len(props) > 4:
                 return "", 400 
@@ -294,14 +312,13 @@ def social_bp(discord, db):
         twitter = []
         for x in twitchres:
             if x["platform"] == "twitch":
-                twitch.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+                twitch.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": x["type"]}) 
             if x["platform"] == "youtube":
-                youtube.append({"id": x["id"], "name": x["name"], "channel_name": x["real_name"], "channel": str(x["channel"]),"type": str(x["type"])}) 
+                youtube.append({"id": x["id"], "name": x["name"], "channel_name": x["real_name"], "channel": str(x["channel"]),"type": x["type"]}) 
             if x["platform"] == "facebook":
-                facebook.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+                facebook.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": x["type"]}) 
             if x["platform"] == "twitter":
-                twitter.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": str(x["type"])}) 
+                twitter.append({"id": x["id"], "name": x["name"],"channel": str(x["channel"]),"type": x["type"]}) 
         return jsonify({"twitter": twitter, "twitch": twitch, "youtube": youtube, "facebook": facebook})
-
 
     return social_c

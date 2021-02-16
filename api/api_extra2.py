@@ -1,9 +1,8 @@
-from quart import Blueprint, redirect, jsonify, request, url_for
-from quart_discord import requires_authorization, Unauthorized
+from quart import Blueprint, jsonify, request
 import psycopg2.extras
 
 from auth import has_access
-from commons import db_commit, db_fetch
+from commons import  db_fetch
 
 def extra2_bp(discord, db):
 
@@ -15,12 +14,15 @@ def extra2_bp(discord, db):
         data = await request.get_json()
         try: 
             guild = str(data['guild'])
-            props = data["data"]
+            props = list(data["data"])
         except: 
             return "", 400
 
         if not (await has_access(discord, guild, db)):
             return "", 401
+
+        if len(props > 5):
+            return "", 400
 
         dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         dc.execute("DELETE FROM purge WHERE guild = %s", (guild, ))
@@ -57,12 +59,15 @@ def extra2_bp(discord, db):
         data = await request.get_json()
         try: 
             guild = str(data['guild'])
-            props = data["data"]
+            props = list(data["data"])
         except: 
             return "", 400
 
         if not (await has_access(discord, guild, db)):
             return "", 401
+
+        if len(props) > 6:
+            return "", 400
 
         dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
         dc.execute("DELETE FROM autochannel WHERE guild = %s", (guild, ))

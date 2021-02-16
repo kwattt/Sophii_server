@@ -32,7 +32,7 @@ def account_bp(discord, db):
         try:
             month = int(props["month"])
             day = int(props["day"])
-            enabled = props["enabled"]
+            enabled = int(props["enabled"])
         except:
             return "", 400
 

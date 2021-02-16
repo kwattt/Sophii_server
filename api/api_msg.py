@@ -23,14 +23,22 @@ def msg_bp(discord, db):
             return "", 401
 
         if "channel" in props:
-            channel = str(props["channel"])
+            try:
+                channel = str(props["channel"])
+            except:
+                return "", 400
+
             if(len(channel) > 25):
                 return "", 400
 
             db_commit("UPDATE servidores SET welcome = %s WHERE guild = %s", (channel, guild, ), db)
 
         if "join" in props:
-            join = props["join"]
+            try:
+                join = str(props["join"])
+            except:
+                return "", 400
+
             ent = join.replace("\n", "").split(";")
 
             if len(join) > 1500:
@@ -53,7 +61,10 @@ def msg_bp(discord, db):
             dc.close()
 
         if "leave" in props:
-            leave = props["leave"]
+            try:
+                leave = str(props["leave"])
+            except:
+                return "", 400
 
             if len(leave) > 1500:
                 return "", 400
@@ -77,7 +88,10 @@ def msg_bp(discord, db):
             dc.close()
 
         if "oraculo" in props:
-            oraculo = props["oraculo"]
+            try:
+                oraculo = str(props["oraculo"])
+            except:
+                return "", 400
 
             if len(oraculo) > 1500:
                 return "", 400

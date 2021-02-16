@@ -42,8 +42,11 @@ def extra_bp(discord, db):
 
             try:
                 stalk = int(props["stalk"])
-                role = str(props["role"])
+                role = list(props["role"])
             except:
+                return "", 400
+
+            if len(role) > 20:
                 return "", 400
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
@@ -58,8 +61,11 @@ def extra_bp(discord, db):
             dc.close()
 
         if "msg" in props:
-
-            msgs = props["msg"]
+            
+            try: 
+                msgs = str(props["msg"])
+            except:
+                return "", 400
 
             if len(msgs) > 1000:
                 return "", 400
@@ -86,7 +92,7 @@ def extra_bp(discord, db):
 
     @extra_c.route("/api/extra")
     async def Extra():
-        
+
         try: 
             guild = request.args.get("guild")
         except:

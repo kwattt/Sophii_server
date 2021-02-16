@@ -1,5 +1,4 @@
-from quart import Blueprint, redirect, jsonify, request, url_for
-from quart_discord import requires_authorization, Unauthorized
+from quart import Blueprint, jsonify, request
 import psycopg2.extras
 
 from auth import has_access
@@ -74,7 +73,10 @@ def levels_bp(discord, db):
             db_commit("UPDATE servidores SET levels = %s WHERE guild = %s", (int(props["enabled"]), guild, ), db)
 
         if "shop" in props:
-            shop = props["shop"]
+            shop = list(props["shop"])
+
+            if len(shop) > 6:
+                return "", 400 
 
             dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             dc.execute("DELETE FROM shop WHERE guild = %s", (guild,))
