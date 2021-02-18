@@ -21,7 +21,7 @@ def extra2_bp(discord, db):
         if not (await has_access(discord, guild, db)):
             return "", 401
 
-        if len(props > 5):
+        if len(props) > 5:
             return "", 400
 
         dc = db.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
